@@ -1,0 +1,15 @@
+{
+  "name": "OmniBiz: African SME Operating System",
+  "description": "The unified SME operating system for African retail, dining, pharmacy, service and wholesale businesses. Smarter checkouts, Mobile Money, offline reliability and AI-powered health metrics.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API",
+    "AI-Driven Analytics",
+    "Mobile-First POS",
+    "Enterprise Inventory Management",
+    "Multi-Branch Orchestration"
+  ]
+}
