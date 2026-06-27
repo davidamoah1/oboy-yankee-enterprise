@@ -9,7 +9,8 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Package,
-  CreditCard
+  CreditCard,
+  Receipt
 } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
 import { cn } from "@/lib/utils";
@@ -103,9 +104,9 @@ export function TenantLayout() {
 
         <main className="flex-1 flex flex-col min-w-0 bg-background/50 relative overflow-hidden">
           <header className={cn(
-            "h-20 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-20 transition-all duration-300 border-b shrink-0",
+            "h-16 sm:h-20 flex items-center justify-between px-3 sm:px-8 sticky top-0 z-20 transition-all duration-300 border-b shrink-0 safe-top",
             scrolled ? "bg-background/80 backdrop-blur-xl border-border shadow-sm" : "bg-transparent border-transparent"
-          )}>
+          )} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
             <div className="flex items-center gap-3 sm:gap-6">
               <Button 
                 variant="outline" 
@@ -150,7 +151,7 @@ export function TenantLayout() {
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl bg-muted/40 border border-border text-muted-foreground relative hover:bg-muted/80 transition-all shrink-0">
+                      <Button variant="ghost" size="icon" className="hidden sm:flex h-11 w-11 rounded-2xl bg-muted/40 border border-border text-muted-foreground relative hover:bg-muted/80 transition-all shrink-0">
                         <Bell className="h-5 w-5" />
                         <span className="absolute top-3 right-3 h-2 w-2.5 bg-indigo-500 rounded-full border-2 border-background shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                       </Button>
@@ -192,7 +193,7 @@ export function TenantLayout() {
             </div>
           </header>
 
-          <footer className="hidden md:flex shrink-0 h-10 border-t border-border/40 items-center justify-between px-4 sm:px-8 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 bg-secondary/10 order-last">
+          <footer className="hidden lg:flex shrink-0 h-10 border-t border-border/40 items-center justify-between px-4 sm:px-8 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 bg-secondary/10 order-last">
              <span>OBOY YANKEE ENTERPRISE v1.0</span>
              <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
@@ -208,7 +209,7 @@ export function TenantLayout() {
               "flex-1 bg-secondary/10",
               isPOSPage 
                 ? "p-1.5 sm:p-3 lg:p-6 pb-20 lg:pb-6 no-scrollbar overflow-hidden flex flex-col min-h-0" 
-                : "overflow-auto p-3 sm:p-8 pb-24 sm:pb-8 custom-scrollbar"
+                : "overflow-auto p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8 custom-scrollbar"
             )}
           >
             <TenantSecurityWrapper>
@@ -228,12 +229,12 @@ export function TenantLayout() {
             </TenantSecurityWrapper>
           </div>
 
-          <div className="fixed bottom-0 inset-x-0 h-16 bg-background/95 backdrop-blur-xl border-t border-border flex items-center justify-around px-2 z-40 lg:hidden shadow-lg safe-bottom">
+          <div className="fixed bottom-0 inset-x-0 bg-background/95 backdrop-blur-xl border-t border-border flex items-center justify-around px-2 z-40 lg:hidden shadow-lg safe-bottom" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
             <Link
-              to="/pos"
+              to="/dashboard"
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full text-muted-foreground hover:text-indigo-500 transition-colors",
-                location.pathname.startsWith('/pos') && "text-indigo-500"
+                "flex flex-col items-center justify-center flex-1 h-16 text-muted-foreground hover:text-indigo-500 transition-colors",
+                location.pathname === '/dashboard' && "text-indigo-500"
               )}
             >
               <LayoutDashboard className="h-5 w-5" />
@@ -242,7 +243,7 @@ export function TenantLayout() {
             <Link
               to="/pos"
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full text-muted-foreground hover:text-indigo-500 transition-colors",
+                "flex flex-col items-center justify-center flex-1 h-16 text-muted-foreground hover:text-indigo-500 transition-colors",
                 location.pathname.startsWith('/pos') && "text-indigo-500"
               )}
             >
@@ -252,7 +253,7 @@ export function TenantLayout() {
             <Link
               to="/inventory"
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full text-muted-foreground hover:text-indigo-500 transition-colors",
+                "flex flex-col items-center justify-center flex-1 h-16 text-muted-foreground hover:text-indigo-500 transition-colors",
                 location.pathname.startsWith('/inventory') && "text-indigo-500"
               )}
             >
@@ -260,22 +261,22 @@ export function TenantLayout() {
               <span className="text-[9px] font-black mt-1 uppercase tracking-tight">Stock</span>
             </Link>
             <Link
-              to="/invoices"
+              to="/receipts"
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full text-muted-foreground hover:text-indigo-500 transition-colors",
-                location.pathname.startsWith('/invoices') && "text-indigo-500"
+                "flex flex-col items-center justify-center flex-1 h-16 text-muted-foreground hover:text-indigo-500 transition-colors",
+                location.pathname.startsWith('/receipts') && "text-indigo-500"
               )}
             >
-              <CreditCard className="h-5 w-5" />
-              <span className="text-[9px] font-black mt-1 uppercase tracking-tight">Bills</span>
+              <Receipt className="h-5 w-5" />
+              <span className="text-[9px] font-black mt-1 uppercase tracking-tight">Receipts</span>
             </Link>
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="flex flex-col items-center justify-center flex-1 h-full text-muted-foreground hover:text-indigo-500 transition-colors"
+              className="flex flex-col items-center justify-center flex-1 h-16 text-muted-foreground hover:text-indigo-500 transition-colors"
             >
               <Menu className="h-5 w-5" />
-              <span className="text-[9px] font-black mt-1 uppercase tracking-tight">Menu</span>
+              <span className="text-[9px] font-black mt-1 uppercase tracking-tight">More</span>
             </button>
           </div>
         </main>

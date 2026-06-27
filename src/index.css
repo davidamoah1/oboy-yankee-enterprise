@@ -207,6 +207,41 @@
   max-width: calc(100vw - 1.5rem) !important;
 }
 
+/* iPhone Safe Area Support */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px) !important;
+}
+
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0px) !important;
+  padding-right: env(safe-area-inset-right, 0px) !important;
+}
+
+/* Prevent text selection on mobile nav buttons */
+.mobile-nav-item, .mobile-nav-item * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Smooth scrolling for mobile */
+@media (max-width: 1024px) {
+  #main-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Prevent zoom on input focus iOS */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 @media (max-width: 640px) {
   [role="menu"] {
     font-size: clamp(0.75rem, 3.5vw, 0.875rem) !important;

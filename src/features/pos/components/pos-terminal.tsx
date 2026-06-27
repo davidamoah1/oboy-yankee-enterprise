@@ -65,7 +65,7 @@ const ProductCard = memo(({ product, addToCart }: { product: Product; addToCart:
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => addToCart(product)}
-      className="group relative p-4 bg-slate-900 border border-white/5 rounded-2xl sm:rounded-[24px] lg:rounded-[32px] hover:border-emerald-500/30 transition-all cursor-pointer overflow-hidden flex flex-col justify-between h-40"
+      className="group relative p-3 sm:p-4 bg-slate-900 border border-white/5 rounded-2xl sm:rounded-[24px] lg:rounded-[32px] hover:border-emerald-500/30 transition-all cursor-pointer overflow-hidden flex flex-col justify-between h-32 sm:h-40"
     >
       <div className="absolute top-0 right-0 p-4 opacity-[0.02] group-hover:opacity-10 transition-opacity">
         <Package className="h-12 w-12" />
@@ -459,11 +459,11 @@ export function POSTerminal() {
         activeTab !== 'products' && "hidden lg:flex"
       )}>
         <header className="mb-4 lg:mb-6 space-y-3 lg:space-y-4 shrink-0">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl lg:text-3xl xl:text-4xl font-black italic tracking-tighter uppercase text-white leading-none mb-1">Sales Terminal</h1>
-              <div className="flex items-center gap-3">
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">POS-ALPHA-01 • {user?.fullName}</p>
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl lg:text-3xl xl:text-4xl font-black italic tracking-tighter uppercase text-white leading-none mb-1 truncate">Sales Terminal</h1>
+              <div className="flex items-center gap-2 sm:gap-3">
+                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[8px] sm:text-[9px] truncate">POS • {user?.fullName}</p>
                  <button 
                     onClick={() => {
                       setSimulatedOffline(prev => !prev);
@@ -479,11 +479,11 @@ export function POSTerminal() {
                  </button>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 overflow-x-auto no-scrollbar">
               <Button 
                 variant="outline" 
                 onClick={() => setIsScannerOpen(true)}
-                className="h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors"
+                className="h-9 sm:h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors shrink-0"
               >
                 <Barcode className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Scan</span>
@@ -495,26 +495,26 @@ export function POSTerminal() {
                   await syncProducts();
                   toast.success('Inventory catalog updated!', { id: loaderId });
                 }}
-                className="h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors"
+                className="h-9 sm:h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors shrink-0"
               >
                 <RefreshCw className="h-3.5 w-3.5 animate-spin-slow" />
-                <span className="hidden sm:inline">Sync Catalog</span>
+                <span className="hidden sm:inline">Sync</span>
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => setIsDashboardOpen(true)}
-                className="h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors shrink-0"
+                className="h-9 sm:h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors shrink-0"
               >
                 <TrendingUp className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Summary Chart</span>
+                <span className="hidden sm:inline">Summary</span>
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => setIsShiftTrackerOpen(true)}
-                className="h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors shrink-0"
+                className="h-9 sm:h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors shrink-0"
               >
                 <Activity className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="hidden sm:inline">Crew Shifts</span>
+                <span className="hidden sm:inline">Shifts</span>
               </Button>
             </div>
           </div>
@@ -550,13 +550,13 @@ export function POSTerminal() {
 
         <div className="flex-1 overflow-hidden relative">
           {products.length === 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 overflow-y-auto no-scrollbar h-full pb-16 lg:pb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 overflow-y-auto no-scrollbar h-full pb-24 lg:pb-8">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-40 rounded-2xl lg:rounded-[32px] bg-slate-900/50 animate-pulse border border-white/5" />
+                <div key={i} className="h-32 sm:h-40 rounded-2xl lg:rounded-[32px] bg-slate-900/50 animate-pulse border border-white/5" />
               ))}
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 overflow-y-auto no-scrollbar h-full pb-20 lg:pb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 overflow-y-auto no-scrollbar h-full pb-24 lg:pb-8">
               {filteredProducts.map((product: Product) => (
                 <ProductCard
                   key={product.id}
@@ -827,7 +827,7 @@ export function POSTerminal() {
 
       {/* Floating Sticky Cart Button for Tablet/Mobile to show total items and allow switching back */}
       {activeTab === 'products' && cartItemCount > 0 && (
-        <div className="absolute bottom-4 left-4 right-4 lg:hidden z-40">
+        <div className="fixed bottom-16 left-2 right-2 lg:hidden z-30" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
           <Button
             type="button"
             onClick={() => setActiveTab('cart')}
