@@ -193,47 +193,6 @@ export default function StaffPage() {
         console.warn("API connection issue, utilizing local fallback cache:", dbErr);
       }
 
-      // If no staff records exist yet, pre-populate 3 high-quality, professional demo personnel
-      if (mergedStaff.length === 0) {
-        const fallbackStaff = [
-          {
-            id: `staff_demo_1`,
-            full_name: "Sarah Jenkins",
-            email: "sarah.j@nexasystems.com",
-            role: "manager",
-            department: "Sales",
-            shift: "Morning",
-            is_active: true,
-            created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            attendance_score: 98
-          },
-          {
-            id: `staff_demo_2`,
-            full_name: "David Kojo",
-            email: "david.kojo@nexasystems.com",
-            role: "cashier",
-            department: "Sales",
-            shift: "Afternoon",
-            is_active: true,
-            created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-            attendance_score: 94
-          },
-          {
-            id: `staff_demo_3`,
-            full_name: "Amara Adebayo",
-            email: "amara.a@nexasystems.com",
-            role: "accountant",
-            department: "Inventory",
-            shift: "Full",
-            is_active: false,
-            created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-            attendance_score: 100
-          }
-        ];
-        localStorage.setItem(localStaffKey, JSON.stringify(fallbackStaff));
-        mergedStaff = fallbackStaff;
-      }
-
       setStaff(mergedStaff);
     } catch (err) {
       console.error("Failed to fetch personnel:", err);

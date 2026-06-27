@@ -144,9 +144,9 @@ export function POSTerminal() {
   // Aggregate stats
   const totalGTV = recentSales.length > 0 
     ? recentSales.reduce((acc, curr) => acc + (parseFloat(curr.total_amount) || 0), 0)
-    : 15110;
-  const txCount = recentSales.length > 0 ? recentSales.length : 61;
-  const avgTicket = txCount > 0 ? totalGTV / txCount : 247.70;
+    : 0;
+  const txCount = recentSales.length;
+  const avgTicket = txCount > 0 ? totalGTV / txCount : 0;
 
   // Custom data parsing for 7-Day sales summary
   const getDailySalesData = () => {
@@ -174,18 +174,7 @@ export function POSTerminal() {
       });
     }
 
-    // Default high fidelity dataset if empty to show styled visual graph
-    const isMockNeeded = last7Days.every(d => d.total === 0);
-    if (isMockNeeded) {
-      const mockValues = [1250, 1820, 1430, 2210, 2850, 3100, 2450];
-      const mockCounts = [5, 8, 6, 9, 12, 14, 10];
-      return last7Days.map((d, i) => ({
-        ...d,
-        total: mockValues[i],
-        count: mockCounts[i]
-      }));
-    }
-
+    // Return real data (zeros if no sales)
     return last7Days;
   };
 
@@ -221,17 +210,7 @@ export function POSTerminal() {
       });
     }
 
-    const isMockNeeded = hourlyData.every(h => h.sales === 0);
-    if (isMockNeeded) {
-      const mockSales = [250, 480, 850, 620, 1100, 950, 350];
-      const mockTxs = [1, 2, 4, 3, 5, 4, 2];
-      return hourlyData.map((h, i) => ({
-        ...h,
-        sales: mockSales[i],
-        transactions: mockTxs[i]
-      }));
-    }
-
+    // Return real data (zeros if no sales)
     return hourlyData;
   };
 
@@ -248,9 +227,9 @@ export function POSTerminal() {
     const totalSplits = splits.cash + splits.card + splits.momo;
     if (totalSplits === 0) {
       return [
-        { name: 'Cash', value: 45, color: '#10B981' },
-        { name: 'MoMo', value: 35, color: '#3B82F6' },
-        { name: 'Card', value: 20, color: '#EC4899' }
+        { name: 'Cash', value: 0, color: '#10B981' },
+        { name: 'MoMo', value: 0, color: '#3B82F6' },
+        { name: 'Card', value: 0, color: '#EC4899' }
       ];
     }
 
@@ -666,7 +645,7 @@ export function POSTerminal() {
                 <span>₵{total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-end pt-1.5 border-t border-white/[0.05]">
-                <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Terminal Value</span>
+                <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total</span>
                 <span className="text-xl sm:text-2xl font-black italic tracking-tighter text-emerald-500 leading-none">₵{(total * 1.21).toFixed(2)}</span>
               </div>
             </div>

@@ -48,7 +48,6 @@ interface LoadedReceipt {
   paymentMethod: string;
   isCredit?: boolean;
   receiptNumber?: string;
-  blockchainId?: string;
 }
 
 export default function ReceiptDetailPage() {
@@ -110,7 +109,6 @@ export default function ReceiptDetailPage() {
                paymentMethod: tx.paymentMethod || "Mobile Money",
                isCredit: tx.isCredit || false,
                receiptNumber: tx.receiptNumber || tx.id,
-               blockchainId: `NEXA-REF-${tx.id.substring(0, 8).toUpperCase()}`,
              };
            }
          } catch (err) {

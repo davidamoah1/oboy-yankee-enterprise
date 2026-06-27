@@ -47,7 +47,7 @@ export default function OnlineStorePage() {
               <Eye className="h-4 w-4" /> Preview Store
            </Button>
            <Button 
-             onClick={() => toast.success("Opening live domain: nexus-store-mensah.shop")}
+             onClick={() => toast.success("Online store coming soon!")}
              className="h-12 px-6 rounded-xl font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-purple-500/20 bg-purple-500 hover:bg-purple-600 border-none text-white"
            >
               <ExternalLink className="h-4 w-4" /> View Live Domain
@@ -73,7 +73,7 @@ export default function OnlineStorePage() {
                         </div>
                         <div>
                            <div className="font-black italic text-3xl tracking-tighter uppercase leading-none mb-2">Shop ID #182</div>
-                           <div className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-500">nexus-store-mensah.shop</div>
+                           <div className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-500">your-store.oboyyankee.com</div>
                         </div>
                      </div>
                      <Badge className="bg-emerald-500 text-black border-none uppercase text-[9px] px-4 font-black tracking-widest py-1.5 rounded-full">Synchronized</Badge>

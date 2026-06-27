@@ -738,7 +738,7 @@ ${invoice.paymentHistory.length === 0 ? "No previous payments registered." : inv
                     {/* Invoice header */}
                     <div className="flex flex-col sm:flex-row justify-between gap-6">
                       <div className="space-y-1">
-                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">NEXA DISTRIBUTED LEDGER</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">INVOICE</span>
                         <h2 className="text-3xl font-black italic tracking-tight text-white uppercase">{selectedInvoice.client}</h2>
                         <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Account type: {selectedInvoice.type}</p>
                       </div>

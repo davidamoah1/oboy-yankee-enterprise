@@ -153,9 +153,9 @@ export default function SuppliersPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          {[
-           { label: "Total Suppliers", value: suppliers.length.toString(), icon: Truck, trend: "Fully active ledger" },
+           { label: "Total Suppliers", value: suppliers.length.toString(), icon: Truck, trend: "All suppliers" },
            { label: "Active Orders", value: suppliers.reduce((acc, c) => acc + c.activeOrders, 0).toString(), icon: Box, trend: "Incoming deliveries managed" },
-           { label: "Total Committed Value", value: `GH₵ ${(totalSpendAll / 1000).toFixed(1)}k`, icon: TrendingUp, trend: "Overall supplier ledger sum" }
+           { label: "Total Committed Value", value: `GH₵ ${(totalSpendAll / 1000).toFixed(1)}k`, icon: TrendingUp, trend: "Total supplier spending" }
          ].map((stat, i) => (
            <Card key={i} className="bg-card/40 backdrop-blur-sm border-white/5 rounded-[35px] group hover:bg-white/[0.04] transition-all cursor-default overflow-hidden relative">
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
@@ -259,7 +259,7 @@ export default function SuppliersPage() {
               <span>Enroll New Supplier</span>
             </DialogTitle>
             <DialogDescription className="text-xs font-semibold text-slate-400">
-              Onboard a verified business partner into your local bookkeeping ledger.
+              Onboard a new business partner as a supplier.
             </DialogDescription>
           </DialogHeader>
 
@@ -330,7 +330,7 @@ export default function SuppliersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] uppercase font-black text-muted-foreground tracking-widest ml-1">Initial Spent Ledger (GH₵, Optional)</label>
+              <label className="text-[10px] uppercase font-black text-muted-foreground tracking-widest ml-1">Initial Amount Spent (GH₵, Optional)</label>
               <Input 
                 value={spend} 
                 onChange={(e) => setSpend(e.target.value)} 

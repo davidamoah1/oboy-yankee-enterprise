@@ -40,9 +40,8 @@ interface VerificationReceipt {
   discount: number;
   total: number;
   paymentMethod: string;
-  blockchainId?: string;
+  receiptNumber?: string;
   verifiedAt: string;
-  networkNode: string;
 }
 
 
@@ -153,9 +152,8 @@ export default function VerifyReceiptPage() {
                 discount: Number(tx.discount_amount) || 0,
                 total: Number(tx.total_amount) || 0,
                 paymentMethod: tx.payment_method || "Mobile Money",
-                blockchainId: `NEXA-REF-${tx.id.substring(0, 8).toUpperCase()}`,
-                verifiedAt: new Date().toLocaleTimeString() + " GTM",
-                networkNode: "ACCRA-EAST-SECP-01"
+                receiptNumber: tx.receipt_number || tx.id,
+                verifiedAt: new Date().toLocaleString()
               };
             }
           }
@@ -165,18 +163,14 @@ export default function VerifyReceiptPage() {
 
         // 2. Error if not found in Database
         if (!dbReceipt) {
-          setVerificationLogs(prev => [...prev, `[FAIL] Record not found in primary store database. Handshake terminated.`]);
-          setErrorStatus("This transaction receipt signature could not be verified in the secure cloud ledger. It might be invalid, or of a different workspace.");
+          setVerificationLogs(prev => [...prev, `[NOT FOUND] Receipt not found in database.`]);
+          setErrorStatus("This receipt could not be found. It may be invalid or from a different business.");
           setLoading(false);
           return;
         }
 
         setTimeout(() => {
-          setVerificationLogs(prev => [...prev, `[BLOCKCHAIN] Generating secure integrity proof fingerprint...`]);
-        }, 800);
-
-        setTimeout(() => {
-          setVerificationLogs(prev => [...prev, `[VERIFIED] Signature matched successfully. Ledger status is immutable.`]);
+          setVerificationLogs(prev => [...prev, `[VERIFIED] Receipt found and verified successfully.`]);
           setReceipt(dbReceipt);
           setLoading(false);
         }, 1200);
@@ -225,8 +219,8 @@ export default function VerifyReceiptPage() {
             </div>
           </motion.div>
           <div className="space-y-1">
-             <h1 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase text-emerald-400">Ledger Verified</h1>
-             <p className="text-xs font-bold text-slate-400 max-w-sm mx-auto p-2">This transaction document has been securely verified against the OBOY YANKEE ENTERPRISE immutable cloud ledgers.</p>
+             <h1 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase text-emerald-400">Receipt Verified</h1>
+             <p className="text-xs font-bold text-slate-400 max-w-sm mx-auto p-2">This receipt has been verified against the OBOY YANKEE ENTERPRISE database.</p>
           </div>
         </div>
 
@@ -235,12 +229,12 @@ export default function VerifyReceiptPage() {
           <Card className="border-white/5 bg-slate-900/40 backdrop-blur-3xl rounded-3xl p-8 space-y-6">
             <div className="flex items-center justify-center space-y-4 flex-col py-12">
                <Cpu className="h-8 w-8 text-primary animate-spin" />
-               <p className="text-xs font-mono font-black uppercase tracking-widest text-emerald-500 animate-pulse">Running Ledger Audit...</p>
+               <p className="text-xs font-mono font-black uppercase tracking-widest text-emerald-500 animate-pulse">Verifying Receipt...</p>
             </div>
             
             {/* Live Audit Log Parser for extra immersion and authenticity */}
             <div className="border border-white/5 bg-black/60 rounded-2xl p-4 font-mono text-[10px] space-y-2 text-slate-400 h-32 overflow-hidden select-none">
-              <div className="text-primary text-[8px] font-black uppercase tracking-[0.2em] mb-2 border-b border-white/5 pb-1 select-none">Ledger Console Logs:</div>
+              <div className="text-primary text-[8px] font-black uppercase tracking-[0.2em] mb-2 border-b border-white/5 pb-1 select-none">Verification Logs:</div>
               {verificationLogs.map((log, idx) => (
                 <div key={idx} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                   {log}
@@ -254,7 +248,7 @@ export default function VerifyReceiptPage() {
                <AlertTriangle className="h-8 w-8" />
             </div>
             <div className="space-y-2">
-               <h2 className="text-xl font-black uppercase italic text-red-400">Handshake Failed</h2>
+               <h2 className="text-xl font-black uppercase italic text-red-400">Receipt Not Found</h2>
                <p className="text-xs text-slate-400">{errorStatus}</p>
             </div>
             <Button asChild size="sm" variant="outline" className="h-11 rounded-xl">
@@ -361,39 +355,28 @@ export default function VerifyReceiptPage() {
                   </div>
                 </div>
 
-                {/* Cryptographic Proof Area */}
+                {/* Receipt Details */}
                 <div className="border border-white/5 rounded-2xl bg-black/40 p-6 space-y-4 font-mono text-[10px] text-slate-400 print:border-slate-200">
                   <div className="flex items-center gap-2 text-primary text-[8px] font-black uppercase tracking-widest border-b border-white/5 pb-2">
-                     <Fingerprint className="h-4 w-4" /> SECURNODE DECENTRALIZED INTEGRITY POSTURE
+                     <Fingerprint className="h-4 w-4" /> RECEIPT DETAILS
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div className="space-y-1">
-                       <span className="opacity-40">LEDGER PROOF SIGNATURE:</span>
-                       <p className="text-slate-300 break-all select-all">{receipt.blockchainId || "N/A"}</p>
-                     </div>
-                     <div className="space-y-1">
-                       <span className="opacity-40">VALIDATION SERVER:</span>
-                       <p className="text-slate-300">{receipt.networkNode}</p>
-                     </div>
-                     <div className="space-y-1">
-                       <span className="opacity-40">METADATA STATUS:</span>
-                       <p className="text-slate-300">IMMUTABLE LOG REGISTERED</p>
+                       <span className="opacity-40">RECEIPT NUMBER:</span>
+                       <p className="text-slate-300 break-all select-all">{receipt.receiptNumber || receipt.id || "N/A"}</p>
                      </div>
                      <div className="space-y-1 text-right sm:text-right">
-                       <span className="opacity-40">VERIFIED TIMESTAMP:</span>
+                       <span className="opacity-40">VERIFIED AT:</span>
                        <p className="text-emerald-400 font-black">{receipt.verifiedAt}</p>
                      </div>
                   </div>
-                  <div className="pt-2 text-[8px] opacity-40 leading-relaxed text-center sm:text-left">
-                     OBOY YANKEE ENTERPRISE SecurNode protocols (V2.4) dynamically encrypt completed cash drawer and MoMo records at checkout, creating client-independent cryptographic proofs for complete compliance audit safety.
-                  </div>
                 </div>
 
-                {/* Secure Badge Stamp Overlay for physical printing */}
+                {/* Footer */}
                 <div className="pt-4 flex flex-col items-center justify-center text-center opacity-60">
                    <div className="h-[2px] w-12 bg-white/5 mb-4" />
                    <Globe className="h-6 w-6 text-slate-400 mb-2 animate-spin-slow" />
-                   <p className="text-[8px] font-mono uppercase tracking-[0.4em] text-slate-500">Official Secure Verification Node</p>
+                   <p className="text-[8px] font-mono uppercase tracking-[0.4em] text-slate-500">Official Receipt Verification</p>
                 </div>
 
               </CardContent>

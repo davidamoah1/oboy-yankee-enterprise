@@ -44,11 +44,11 @@ interface SupportTicket {
 const FAQS = [
   {
     question: "How do I print receipts directly from the POS?",
-    answer: "You can download our Nexus Desktop Helper to connect with any 58mm or 80mm thermal receipt printer. Alternatively, you can use the browser's standard print dialogue (Ctrl+P or Cmd+P) optimized for standard system printers."
+    answer: "You can use the browser's standard print dialogue (Ctrl+P or Cmd+P) to print receipts to any connected thermal or standard printer."
   },
   {
     question: "Can I manage sales when the physical internet goes out?",
-    answer: "Yes! Nexus OS features an industry-leading Offline Engine. You can continue scanning barcodes and logging cash transactions. Once your browser detects a cellular or Wi-Fi signal, all stored sales are securely and automatically synchronized to the cloud ledger."
+    answer: "Yes! Our system features an Offline Engine. You can continue scanning barcodes and logging cash transactions. Once your browser detects a cellular or Wi-Fi signal, all stored sales are automatically synchronized to the cloud."
   },
   {
     question: "What is Mobile Money (MoMo) integration?",
@@ -203,7 +203,7 @@ export default function SupportPage() {
           if (found && found.status !== 'resolved') {
             const adminReply = {
               sender: 'admin' as const,
-              senderName: "Nexa AI Concierge",
+              senderName: "Support Team",
               content: `Hello! I have recorded your latest message regarding: "${found.subject}". A representative will review this shortly. Thank you for your patience!`,
               timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16)
             };
@@ -253,7 +253,7 @@ export default function SupportPage() {
 
   const handleWhatsAppClick = () => {
     // Standard WhatsApp link for Ghana business support
-    window.open("https://wa.me/233241234567?text=Hello%20Nexa%20OS%20Support%2C%20I%20need%20assistance%20with%20my%20store%20dashboard.", "_blank");
+    window.open("https://wa.me/233241234567?text=Hello%20OBOY%20YANKEE%20Support%2C%20I%20need%20assistance%20with%20my%20store%20dashboard.", "_blank");
   };
 
   const getPriorityBadgeColor = (p: SupportTicket['priority']) => {
@@ -638,7 +638,7 @@ export default function SupportPage() {
 
               {/* Email Support Card */}
               <a 
-                href="mailto:support@nexus-sme.gh"
+                href="mailto:support@oboyyankee.com"
                 className="group p-5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3.5">
@@ -647,7 +647,7 @@ export default function SupportPage() {
                   </div>
                   <div>
                     <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-200 leading-none mb-1">Standard Email Ticket</h4>
-                    <p className="text-slate-500 font-bold text-[9px] uppercase tracking-tighter leading-none">support@nexus-sme.gh</p>
+                    <p className="text-slate-500 font-bold text-[9px] uppercase tracking-tighter leading-none">support@oboyyankee.com</p>
                   </div>
                 </div>
                 <ExternalLink className="h-3.5 w-3.5 text-slate-500 group-hover:text-white transition-colors" />

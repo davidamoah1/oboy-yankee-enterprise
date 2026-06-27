@@ -812,7 +812,7 @@ export default function OmniBizIntelligencePage() {
     return grid;
   }, [customers]);
 
-  // Send question to AI Business Advisor (Nexa assistant integration)
+  // Send question to AI Business Advisor
   const handleAskBusinessAdvisor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiMessage.trim()) return;
@@ -1105,11 +1105,11 @@ export default function OmniBizIntelligencePage() {
                   </div>
                 </div>
 
-                {/* Nexa Automated Insights panel */}
+                {/* AI Insights panel */}
                 <div className="bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-3xl p-6 shadow-md flex flex-col justify-between">
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-widest text-[#a855f7] flex items-center gap-2">
-                      <Sparkles className="h-4 w-4" /> Nexa BI Insights
+                      <Sparkles className="h-4 w-4" /> AI Insights
                     </h3>
                     <p className="text-[10px] text-indigo-300 mt-1 uppercase tracking-wider">Dynamic Strategic Directives</p>
                     
@@ -1600,7 +1600,7 @@ export default function OmniBizIntelligencePage() {
                         </div>
                         
                         <div className="text-xs text-slate-500 leading-relaxed bg-slate-50 border border-slate-100 p-3.5 rounded-2xl">
-                          <strong>Nexa Model reasoning:</strong> {aiForecastResult?.reasoning || "Consistent late-week transaction intensity represents structural spending spikes. Projections indicate a 15% revenue expansion next month."}
+                          <strong>AI reasoning:</strong> {aiForecastResult?.reasoning || "Consistent late-week transaction intensity represents structural spending spikes. Projections indicate a 15% revenue expansion next month."}
                         </div>
                       </div>
                     )}
@@ -1707,7 +1707,7 @@ export default function OmniBizIntelligencePage() {
                 <div className="flex items-center gap-2.5">
                   <div className="h-9 w-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg"><Brain className="h-5 w-5" /></div>
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-widest text-[#a855f7]">Nexa BI Expert Advisor</h3>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-[#a855f7]">AI Business Advisor</h3>
                     <p className="text-[10px] text-indigo-300">Powered by Gemini models • Contextual Business Intelligence</p>
                   </div>
                 </div>
@@ -1764,7 +1764,7 @@ export default function OmniBizIntelligencePage() {
                   <div className="flex justify-start">
                     <div className="bg-white border border-slate-200 rounded-3xl rounded-tl-sm p-4 text-xs text-slate-400 flex items-center gap-2">
                       <span className="flex h-1.5 w-1.5 bg-indigo-600 rounded-full animate-ping" />
-                      <span className="italic">Nexa AI Advisor compiling parameters and affinities...</span>
+                      <span className="italic">AI Advisor compiling parameters and affinities...</span>
                     </div>
                   </div>
                 )}
@@ -1774,7 +1774,7 @@ export default function OmniBizIntelligencePage() {
               <form onSubmit={handleAskBusinessAdvisor} className="p-3 bg-white border-t border-slate-200 flex gap-2">
                 <input
                   type="text"
-                  placeholder="Ask Nexa about stockouts, best-selling bundle optimizations, or CLV metrics..."
+                  placeholder="Ask about stockouts, best-selling products, or customer trends..."
                   value={aiMessage}
                   onChange={(e) => setAiMessage(e.target.value)}
                   disabled={submittingAI}
