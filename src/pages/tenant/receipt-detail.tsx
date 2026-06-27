@@ -116,7 +116,7 @@ export default function ReceiptDetailPage() {
                  };
                }
              })(),
-             new Promise<void>((_, reject) => setTimeout(() => reject(new Error("API loading timed out")), 2000))
+             new Promise<void>((_, reject) => setTimeout(() => reject(new Error("API loading timed out")), 15000))
            ]);
          } catch (err) {
            console.warn("Could not query API for receipt details: ", err);
@@ -159,7 +159,7 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
      return (
        <div className="h-96 flex flex-col items-center justify-center gap-4 text-slate-400">
          <Loader2 className="h-8 w-8 text-primary animate-spin" />
-         <span className="text-xs font-black uppercase tracking-widest text-emerald-500 animate-pulse">Loading Receipt Signature...</span>
+         <span className="text-xs font-black uppercase tracking-widest text-emerald-500 animate-pulse">Loading Receipt...</span>
        </div>
      );
   }
@@ -171,8 +171,8 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
             <ShieldCheck className="h-8 w-8 text-red-500" />
          </div>
          <div className="space-y-2">
-            <h2 className="text-xl font-black uppercase italic text-red-400">Verification Failed</h2>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">This transaction receipt signature could not be verified in the secure cloud ledger. The record may have synced differently or is invalid.</p>
+            <h2 className="text-xl font-black uppercase italic text-red-400">Receipt Not Found</h2>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">We couldn't find this receipt. It may have been deleted or the connection timed out. Please go back and try again.</p>
          </div>
          <Button onClick={() => navigate(-1)} size="sm" variant="outline" className="h-11 rounded-xl">
             Go Back

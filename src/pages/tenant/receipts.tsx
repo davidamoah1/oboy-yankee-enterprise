@@ -42,59 +42,6 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 
-const MOCK_RECEIPTS = [
-  {
-    id: "RCP-2024-001",
-    customer: "Ama Serwaa",
-    total: 245.50,
-    method: "MoMo",
-    date: "2024-05-11",
-    time: "09:45 AM",
-    cashier: "Kofi Mensah",
-    status: "Paid"
-  },
-  {
-    id: "RCP-2024-002",
-    customer: "Kwame Boateng",
-    total: 120.00,
-    method: "Cash",
-    date: "2024-05-11",
-    time: "10:12 AM",
-    cashier: "Kofi Mensah",
-    status: "Paid"
-  },
-  {
-    id: "RCP-2024-003",
-    customer: "Abena Mansa",
-    total: 85.20,
-    method: "MoMo",
-    date: "2024-05-11",
-    time: "11:20 AM",
-    cashier: "Kofi Mensah",
-    status: "Paid"
-  },
-  {
-    id: "RCP-2024-004",
-    customer: "John Doe",
-    total: 450.00,
-    method: "Card",
-    date: "2024-05-11",
-    time: "12:05 PM",
-    cashier: "Kofi Mensah",
-    status: "Paid"
-  },
-  {
-    id: "RCP-2024-005",
-    customer: "Yaa Prah",
-    total: 15.00,
-    method: "Cash",
-    date: "2024-05-11",
-    time: "01:30 PM",
-    cashier: "Kofi Mensah",
-    status: "Paid"
-  }
-];
-
 export default function ReceiptsPage() {
   const [search, setSearch] = useState("");
   const [offlineTxs, setOfflineTxs] = useState<any[]>([]);
@@ -157,7 +104,6 @@ export default function ReceiptsPage() {
       status: "Paid",
       isOffline: false
     })),
-    ...MOCK_RECEIPTS.map(tx => ({ ...tx, rawId: tx.id, isOffline: false }))
   ];
 
   const getMethodIcon = (method: string) => {
