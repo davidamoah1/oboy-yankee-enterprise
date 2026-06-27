@@ -307,10 +307,10 @@ export default function TenantDashboard() {
           <div className="space-y-2">
             <div className="flex items-center gap-3 text-emerald-500">
                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,1)] animate-pulse" />
-               <span className="text-[10px] font-black uppercase tracking-[0.3em] font-display">Store Data Synced</span>
+               <span className="text-[10px] font-black uppercase tracking-[0.3em] font-display">Data Synced</span>
             </div>
             <h1 className="text-3xl xs:text-5xl sm:text-7xl font-black tracking-tighter uppercase italic py-1 leading-none text-foreground">
-              Main <span className="opacity-35">Dashboard</span>
+              Shop <span className="opacity-35">Dashboard</span>
             </h1>
           </div>
 
@@ -375,7 +375,7 @@ export default function TenantDashboard() {
             </p>
           </div>
           <div className="shrink-0 flex items-center gap-2 text-xs font-bold text-emerald-500 font-mono tracking-wider bg-emerald-500/5 px-4 h-10 rounded-2xl border border-emerald-500/10">
-             <span>ACCRA HUB CONTEXT: LIVE</span>
+             <span>SYSTEM ACTIVE</span>
           </div>
         </div>
 
@@ -393,7 +393,7 @@ export default function TenantDashboard() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 font-mono">
-                    Milestone 0{idx + 1}
+                    Step {idx + 1}
                   </span>
                   <div className="h-2 w-2 rounded-full bg-emerald-500/30 group-hover/workflow:bg-emerald-500 group-hover/workflow:animate-ping transition-colors" />
                 </div>
@@ -525,9 +525,9 @@ export default function TenantDashboard() {
           { label: 'Sell / Cashier', icon: Zap, href: '/pos', color: 'text-emerald-500' },
           { label: 'Products & Stock', icon: Package, href: '/inventory', color: 'text-blue-500' },
           { label: 'Sales Reports', icon: TrendingUp, href: '/reports', color: 'text-purple-500' },
-          { label: 'Employees / Staff', icon: Users, href: '/staff', color: 'text-amber-500' },
+          { label: 'Add Staff', icon: Users, href: '/staff', color: 'text-amber-500' },
           { label: 'Expenses', icon: ArrowDownRight, href: '/expenses', color: 'text-red-500' },
-          { label: 'Store Settings', icon: Layers, href: '/settings', color: 'text-neutral-500' },
+          { label: 'Settings', icon: Layers, href: '/settings', color: 'text-neutral-500' },
         ].map((action, i) => (
           <motion.button
             key={action.label}
@@ -832,16 +832,16 @@ export default function TenantDashboard() {
              <CardHeader className="p-0 mb-6">
                 <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground leading-none flex items-center gap-2">
                    <Zap className="h-4 w-4 text-amber-500" />
-                   Nexa Node Status
+                   System Status
                 </CardTitle>
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mt-2">Real-time connection checkers</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mt-2">Everything running smoothly</p>
              </CardHeader>
              <CardContent className="p-0 space-y-3">
                 {[
-                  { label: "Cash Register", status: "Online", desc: "Ready to sell and take checkout.", health: 100, href: '/pos' },
-                  { label: "Sales Reports", status: "Active", desc: "Sales trends and graphs loaded correctly.", health: 98, href: '/reports' },
-                  { label: "Cloud Backup", status: "Stable", desc: "Local sales safely backed up online.", health: 100, href: '/settings' },
-                  { label: "Staff Connection", status: "Stable", desc: "Access permissions and profiles active.", health: 100, href: '/staff' }
+                  { label: "Cash Register", status: "Online", desc: "Ready to sell and take payments.", health: 100, href: '/pos' },
+                  { label: "Sales Reports", status: "Active", desc: "Sales trends and graphs are working.", health: 98, href: '/reports' },
+                  { label: "Cloud Backup", status: "Stable", desc: "Your sales data is safely backed up online.", health: 100, href: '/settings' },
+                  { label: "Staff Access", status: "Stable", desc: "All staff accounts are active and working.", health: 100, href: '/staff' }
                 ].map((node) => (
                   <div 
                     key={node.label} 

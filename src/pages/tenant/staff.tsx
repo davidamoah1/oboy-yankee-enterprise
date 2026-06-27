@@ -304,7 +304,7 @@ export default function StaffPage() {
       if (successOnServer) {
         toast.success(serverMessage);
       } else {
-        toast.success(`Worker "${inviteName}" successfully registered & active in local workspace.`);
+        toast.success(`Staff member "${inviteName}" has been added successfully.`);
       }
       
       await fetchStaff();
@@ -315,7 +315,7 @@ export default function StaffPage() {
       setInviteShift("Morning");
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.message || "Personnel registration encountered an issue.");
+      toast.error(err?.message || "Could not add staff member. Please try again.");
     } finally {
       setIsInviting(false);
     }
@@ -339,11 +339,10 @@ export default function StaffPage() {
         console.warn("Could not reach API for user deletion:", dbErr);
       }
 
-      toast.success("Personnel record successfully de-registered.");
       await fetchStaff();
     } catch (err: any) {
       console.error("Failed to remove staff:", err);
-      toast.error("An error occurred while removing personnel.");
+      toast.error("Could not remove staff member. Please try again.");
     }
   };
 
@@ -353,14 +352,14 @@ export default function StaffPage() {
   );
 
   const statsList = [
-    { title: "Total Hub Personnel", value: staff.length.toString(), icon: Users, color: "text-blue-500" },
-    { title: "Command & Control", value: staff.filter(s => s.role === 'manager' || s.role === 'admin').length.toString(), icon: Shield, color: "text-emerald-500" },
-    { title: "Recent Activations", value: staff.filter(s => {
+    { title: "Total Staff", value: staff.length.toString(), icon: Users, color: "text-blue-500" },
+    { title: "Managers", value: staff.filter(s => s.role === 'manager' || s.role === 'admin').length.toString(), icon: Shield, color: "text-emerald-500" },
+    { title: "New This Month", value: staff.filter(s => {
       const d = new Date(s.created_at);
       const now = new Date();
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length.toString(), icon: Clock, color: "text-purple-500" },
-    { title: "Operational Index", value: "98.4%", icon: TrendingUp, color: "text-amber-500" }
+    { title: "Attendance Rate", value: "98.4%", icon: TrendingUp, color: "text-amber-500" }
   ];
 
   return (
@@ -374,7 +373,7 @@ export default function StaffPage() {
              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">Staff</span>
           </div>
           <h1 className="text-4xl font-black italic tracking-tighter uppercase text-foreground leading-none">
-            Your <span className="text-primary">Team</span>
+            Staff <span className="text-primary">List</span>
           </h1>
         </div>
 
@@ -383,7 +382,7 @@ export default function StaffPage() {
             <Button 
               className="h-12 px-6 rounded-xl font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-primary/20 cursor-pointer animate-pulse"
             >
-               <UserPlus className="h-4 w-4" /> Add New Staff
+               <UserPlus className="h-4 w-4" /> Add Staff Member
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md bg-card border-2 border-border/90 rounded-[32px] max-h-[90vh] overflow-y-auto p-0 shadow-3xl text-foreground">
@@ -397,10 +396,10 @@ export default function StaffPage() {
                 </div>
                 <div className="space-y-1">
                   <DialogTitle className="text-lg font-black tracking-tight text-foreground uppercase">
-                    Invite Worker
+                    Add New Staff Member
                   </DialogTitle>
                   <DialogDescription className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                    Configure operational role & system access credentials
+                    Enter staff details and choose their role
                   </DialogDescription>
                 </div>
               </DialogHeader>
@@ -467,7 +466,7 @@ export default function StaffPage() {
                         className="rounded-xl h-12 bg-background border-2 border-border/80 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-semibold text-foreground placeholder:text-muted-foreground/40 transition-all pl-4"
                       />
                       <p className="text-[10px] text-muted-foreground font-medium pl-1 leading-snug">
-                        Provide the worker's official full name to register their profile.
+                        Enter the full name of the staff member you want to add.
                       </p>
                     </div>
 
@@ -475,7 +474,7 @@ export default function StaffPage() {
                       <div className="flex items-center gap-1.5 focus-within:text-primary transition-colors">
                         <Mail className="h-4 w-4 text-primary" />
                         <Label htmlFor="email" className="text-xs font-extrabold uppercase tracking-wide text-foreground">
-                          Worker Email <span className="text-primary font-bold">*</span>
+                          Staff Email <span className="text-primary font-bold">*</span>
                         </Label>
                       </div>
                       <Input 
@@ -487,7 +486,7 @@ export default function StaffPage() {
                         className="rounded-xl h-12 bg-background border-2 border-border/80 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-semibold text-foreground placeholder:text-muted-foreground/40 transition-all pl-4"
                       />
                       <p className="text-[10px] text-muted-foreground font-medium pl-1 leading-snug">
-                        This email address will receive secure login invite and passkeys.
+                        Their login details will be sent to this email address.
                       </p>
                     </div>
                   </div>
@@ -499,7 +498,7 @@ export default function StaffPage() {
                       <div className="flex items-center gap-1.5">
                         <Shield className="h-4 w-4 text-[#a855f7]" />
                         <Label htmlFor="role" className="text-xs font-extrabold uppercase tracking-wide text-foreground">
-                          Operations Role <span className="text-[#a855f7] font-bold">*</span>
+                          Staff Role <span className="text-[#a855f7] font-bold">*</span>
                         </Label>
                       </div>
                       <Select value={inviteRole} onValueChange={setInviteRole}>
@@ -514,11 +513,11 @@ export default function StaffPage() {
                         </SelectContent>
                       </Select>
                       <div className="p-3 bg-muted/50 rounded-xl border border-border text-[10px] text-foreground leading-relaxed font-semibold">
-                        <span className="text-[#a855f7] uppercase tracking-wider font-extrabold block mb-0.5">Authorization Level:</span>
-                        {inviteRole === "manager" && "Supervisor: Allowed full roster authorization, workflow changes, team approval metrics, and dashboard insights."}
-                        {inviteRole === "cashier" && "Checkout Staff: Point-of-Sale checkouts, register flow balancing, shifts audits, and sales tickets."}
-                        {inviteRole === "accountant" && "Financial Supervisor: Complete visibility to core audits, billing adjustments, payroll trackers, and inventory costs."}
-                        {inviteRole === "staff" && "Standard Employee: Timesheets access, task checklists, and operation team shift tracking."}
+                        <span className="text-[#a855f7] uppercase tracking-wider font-extrabold block mb-0.5">What they can do:</span>
+                        {inviteRole === "manager" && "Manager: Can see everything, manage staff, view reports, and handle all shop operations."}
+                        {inviteRole === "cashier" && "Cashier: Can process sales at the POS and handle checkout payments."}
+                        {inviteRole === "accountant" && "Accountant: Can view all financial reports, expenses, invoices, and bookkeeping."}
+                        {inviteRole === "staff" && "Staff: Basic access to shifts and daily tasks."}
                       </div>
                     </div>
 

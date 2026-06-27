@@ -25,7 +25,7 @@ export function LoginForm() {
     try {
       const profile = await signIn(email, password);
       toast.success('Successfully logged in!');
-      const dashboardRoles = [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER];
+      const dashboardRoles = [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER];
       navigate(dashboardRoles.includes(profile.role) ? '/dashboard' : '/pos');
     } catch (error: any) {
       toast.error(error.response?.data?.error || error.message || 'Failed to login');
@@ -98,7 +98,7 @@ export function LoginForm() {
           </form>
         </CardContent>
         <CardFooter className="pb-8 pt-4 justify-center">
-          <p className="text-slate-500 font-bold text-xs">Contact your shop owner to get an account.</p>
+          <p className="text-slate-500 font-bold text-xs">Forgot your password? Contact your manager or admin.</p>
         </CardFooter>
       </Card>
     </div>

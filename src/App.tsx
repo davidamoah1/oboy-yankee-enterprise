@@ -98,31 +98,31 @@ export default function App() {
                   </RoleGuard>
                 }
               >
-                <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER]}><DashboardPage /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER]}><DashboardPage /></ProtectedRoute>} />
                 <Route path="/pos" element={<POSPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/receipts" element={<ReceiptsPage />} />
                 <Route path="/receipts/:receiptId" element={<ReceiptDetailPage />} />
                 <Route path="/sales" element={<SalesHistoryPage />} />
-                <Route path="/invoices" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><InvoicesPage /></ProtectedRoute>} />
-                <Route path="/expenses" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER, UserRole.ACCOUNTANT]}><ExpensesPage /></ProtectedRoute>} />
-                <Route path="/accounting" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.ACCOUNTANT]}><AccountingPage /></ProtectedRoute>} />
+                <Route path="/invoices" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><InvoicesPage /></ProtectedRoute>} />
+                <Route path="/expenses" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER, UserRole.ACCOUNTANT]}><ExpensesPage /></ProtectedRoute>} />
+                <Route path="/accounting" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ACCOUNTANT]}><AccountingPage /></ProtectedRoute>} />
                 <Route path="/mobile-money" element={<MobileMoneyPage />} />
-                <Route path="/staff" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.HR]}><StaffPage /></ProtectedRoute>} />
-                <Route path="/payroll" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.HR]}><PayrollPage /></ProtectedRoute>} />
-                <Route path="/suppliers" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.STORE_KEEPER]}><SuppliersPage /></ProtectedRoute>} />
+                <Route path="/staff" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.HR]}><StaffPage /></ProtectedRoute>} />
+                <Route path="/payroll" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.HR]}><PayrollPage /></ProtectedRoute>} />
+                <Route path="/suppliers" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.STORE_KEEPER]}><SuppliersPage /></ProtectedRoute>} />
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/online-store" element={<OnlineStorePage />} />
-                <Route path="/reports" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER]}><ReportsPage /></ProtectedRoute>} />
-                <Route path="/intelligence" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER]}><IntelligencePage /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN]}><SettingsPage /></ProtectedRoute>} />
-                <Route path="/z-reports" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER]}><ZReportsPage /></ProtectedRoute>} />
+                <Route path="/reports" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER]}><ReportsPage /></ProtectedRoute>} />
+                <Route path="/intelligence" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER]}><IntelligencePage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN]}><SettingsPage /></ProtectedRoute>} />
+                <Route path="/z-reports" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER]}><ZReportsPage /></ProtectedRoute>} />
                 <Route path="/airtime" element={<AirtimePage />} />
                 <Route path="/bill-payments" element={<BillPaymentsPage />} />
-                <Route path="/credit-sales" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><CreditSalesPage /></ProtectedRoute>} />
-                <Route path="/returns" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER]}><ReturnsPage /></ProtectedRoute>} />
-                <Route path="/profit-analysis" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><ProfitAnalysisPage /></ProtectedRoute>} />
-                <Route path="/promotions" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER]}><PromotionsPage /></ProtectedRoute>} />
+                <Route path="/credit-sales" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><CreditSalesPage /></ProtectedRoute>} />
+                <Route path="/returns" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER]}><ReturnsPage /></ProtectedRoute>} />
+                <Route path="/profit-analysis" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><ProfitAnalysisPage /></ProtectedRoute>} />
+                <Route path="/promotions" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER]}><PromotionsPage /></ProtectedRoute>} />
                 <Route path="/support" element={<SupportPage />} />
               </Route>
 
