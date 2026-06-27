@@ -90,8 +90,8 @@ export class APIClient {
 
         if (shouldRetry) {
           originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
-          const maxRetries = 2;
-          const retryDelay = 2000;
+          const maxRetries = 3;
+          const retryDelay = 3000;
 
           if (originalRequest._retryCount <= maxRetries) {
             await new Promise((resolve) => setTimeout(resolve, retryDelay * originalRequest._retryCount));
@@ -142,7 +142,7 @@ export class APIClient {
     } else if (err.status === 409) {
       toast.error('Conflict', { description: err.message, duration: 6000 });
     } else if (err.status && err.status >= 500) {
-      toast.error('Server Error', { description: 'Please try again in a moment.' });
+      toast.error('Connection Issue', { description: 'The server is taking longer than usual. Please try again.' });
     } else if (err.code === 'ECONNABORTED' || err.message.toLowerCase().includes('timeout')) {
       toast.error('Network Timeout', { description: 'Connection is slow or server is unreachable.' });
     } else {
