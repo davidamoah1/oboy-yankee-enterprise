@@ -8,6 +8,7 @@
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/((?!api|assets).*)", "destination": "/index.html" }
   ]
 }
