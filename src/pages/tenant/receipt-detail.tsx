@@ -277,33 +277,7 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
                            <span>-₵ {receiptData.discount.toFixed(2)}</span>
                         </div>
                       )}
-                      {receiptData.nhilAmount && receiptData.nhilAmount > 0 ? (
-                        <>
-                          <div className="pt-2 border-t border-white/5">
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mb-2">GRA Tax Breakdown</p>
-                          </div>
-                          <div className="flex justify-between text-[10px] font-bold tracking-wider text-muted-foreground italic">
-                             <span>NHIL (2.5%)</span>
-                             <span>₵ {receiptData.nhilAmount.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-[10px] font-bold tracking-wider text-muted-foreground italic">
-                             <span>GETFL (2.5%)</span>
-                             <span>₵ {receiptData.getfundAmount?.toFixed(2) || '0.00'}</span>
-                          </div>
-                          <div className="flex justify-between text-[10px] font-bold tracking-wider text-muted-foreground italic">
-                             <span>VAT (15%)</span>
-                             <span>₵ {receiptData.vatAmount?.toFixed(2) || '0.00'}</span>
-                          </div>
-                          <div className="flex justify-between text-[10px] font-bold tracking-wider text-muted-foreground italic">
-                             <span>COVID-19 HRL (1%)</span>
-                             <span>₵ {receiptData.covidHrlAmount?.toFixed(2) || '0.00'}</span>
-                          </div>
-                          <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground italic pt-2 border-t border-white/5">
-                             <span>Total Tax</span>
-                             <span>₵ {receiptData.tax.toFixed(2)}</span>
-                          </div>
-                        </>
-                      ) : (
+                      {receiptData.tax > 0 && (
                         <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground italic">
                            <span>Tax</span>
                            <span>₵ {receiptData.tax.toFixed(2)}</span>

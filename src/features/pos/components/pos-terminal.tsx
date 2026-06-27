@@ -665,22 +665,6 @@ export function POSTerminal() {
                 <span>Subtotal</span>
                 <span>₵{total.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                <span>NHIL (2.5%)</span>
-                <span>₵{(total * 0.025).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                <span>GETFL (2.5%)</span>
-                <span>₵{(total * 0.025).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                <span>VAT (15%)</span>
-                <span>₵{(total * 0.15).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                <span>COVID HRL (1%)</span>
-                <span>₵{(total * 0.01).toFixed(2)}</span>
-              </div>
               <div className="flex justify-between items-end pt-1.5 border-t border-white/[0.05]">
                 <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Terminal Value</span>
                 <span className="text-xl sm:text-2xl font-black italic tracking-tighter text-emerald-500 leading-none">₵{(total * 1.21).toFixed(2)}</span>
@@ -1198,7 +1182,7 @@ export function POSTerminal() {
                     <span>₵{completedSale.subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
-                    <span className="uppercase tracking-wider">NHIL/GETFL/VAT/COVID (21%)</span>
+                    <span className="uppercase tracking-wider">Tax</span>
                     <span>₵{completedSale.tax.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-[13px] font-black pt-2.5 border-t border-white/[0.05] text-emerald-400">
@@ -1280,7 +1264,7 @@ export function POSTerminal() {
                           `*Items Purchased:* \n${completedSale.items.map((it: any) => `• ${it.product.name} (x${it.quantity}) - GH₵${(parseFloat(it.product.price) * it.quantity).toFixed(2)}`).join('\n')}\n` +
                           `=============================\n` +
                           `*Subtotal:* GH₵${completedSale.subtotal.toFixed(2)}\n` +
-                          `*NHIL/GETFL/VAT/COVID (21%):* GH₵${completedSale.tax.toFixed(2)}\n` +
+                          `*Tax:* GH₵${completedSale.tax.toFixed(2)}\n` +
                           `*Grand Total:* GH₵${completedSale.total.toFixed(2)}\n\n` +
                           `*Settlement:* ${completedSale.paymentMethod}\n\n` +
                           `Thank you for shopping with us! Digital Receipt link: ${window.location.origin}/receipts/${completedSale.saleId}`

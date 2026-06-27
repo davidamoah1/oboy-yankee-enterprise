@@ -141,31 +141,10 @@ export function ThermalReceipt({ open, onClose, receiptData }: ThermalReceiptPro
           {totalTax > 0 && (
             <>
               <div className="divider" />
-              <p className="bold small">Tax Breakdown (GRA):</p>
-              {receiptData.nhilAmount && receiptData.nhilAmount > 0 && (
-                <div className="total-row small">
-                  <span>NHIL (2.5%)</span>
-                  <span>{fmt(receiptData.nhilAmount)}</span>
-                </div>
-              )}
-              {receiptData.getfundAmount && receiptData.getfundAmount > 0 && (
-                <div className="total-row small">
-                  <span>GETFL (2.5%)</span>
-                  <span>{fmt(receiptData.getfundAmount)}</span>
-                </div>
-              )}
-              {receiptData.vatAmount && receiptData.vatAmount > 0 && (
-                <div className="total-row small">
-                  <span>VAT (15%)</span>
-                  <span>{fmt(receiptData.vatAmount)}</span>
-                </div>
-              )}
-              {receiptData.covidHrlAmount && receiptData.covidHrlAmount > 0 && (
-                <div className="total-row small">
-                  <span>COVID-19 HRL (1%)</span>
-                  <span>{fmt(receiptData.covidHrlAmount)}</span>
-                </div>
-              )}
+              <div className="total-row small">
+                <span>Tax</span>
+                <span>{fmt(totalTax)}</span>
+              </div>
             </>
           )}
 
