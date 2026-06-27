@@ -39,6 +39,13 @@ logger.info("Initializing OBOY YANKEE ENTERPRISE production server...", {
   environment: process.env.NODE_ENV || "development"
 });
 
+// Warm up Neon database connection on startup (prevents cold start on first user request)
+prisma.$queryRaw`SELECT 1`.then(() => {
+  logger.info("[DB WARMUP] Database connection established successfully.");
+}).catch((err: any) => {
+  logger.warn("[DB WARMUP] Initial connection failed (will retry on first request):", { error: err.message });
+});
+
 const app = express();
 const PORT = 3000;
 

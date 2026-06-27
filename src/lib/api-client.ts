@@ -85,13 +85,12 @@ export class APIClient {
 
         const shouldRetry =
           originalRequest &&
-          !originalRequest._retryCount &&
           (error.response?.status >= 500 || error.code === 'ECONNABORTED');
 
         if (shouldRetry) {
           originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
-          const maxRetries = 3;
-          const retryDelay = 3000;
+          const maxRetries = 4;
+          const retryDelay = 4000;
 
           if (originalRequest._retryCount <= maxRetries) {
             await new Promise((resolve) => setTimeout(resolve, retryDelay * originalRequest._retryCount));
