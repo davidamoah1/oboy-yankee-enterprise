@@ -223,24 +223,35 @@ export function usePOSSystem() {
 
   // Record a sale (Offline-First)
   const recordSale = async (saleData: any): Promise<{ saleId: string; syncedOnline: boolean } | null> => {
-    const saleId = crypto.randomUUID();
-    const entry = {
-      ...saleData,
-      id: saleId,
-      created_at: new Date().toISOString(),
-      synced: false
-    };
-
     try {
+      const saleId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `sale-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      const entry = {
+        ...saleData,
+        id: saleId,
+        created_at: new Date().toISOString(),
+        synced: false
+      };
+
+      // 1. Save to local DB first (Guarantees data persistence)
       if (db) {
-        // 1. Save to local DB first (Guarantees data persistence)
-        await db.put('sales_queue', entry);
+        try {
+          await db.put('sales_queue', entry);
+        } catch (dbErr) {
+          console.warn('[POS] IndexedDB put failed, continuing with online sync:', dbErr);
+        }
       }
 
       let syncedOnline = false;
       if (isOnline) {
-        // 2. Try to sync immediately if online
-        syncedOnline = await syncSale(entry);
+        // 2. Try to sync immediately if online (failure is non-fatal — sale is already in IndexedDB)
+        try {
+          syncedOnline = await syncSale(entry);
+        } catch (syncErr) {
+          console.warn('[POS] Online sync failed, sale retained in local queue:', syncErr);
+          syncedOnline = false;
+        }
       } else {
         if (db) {
           toast.warning("Station Offline: Transaction Buffered locally.");
@@ -306,19 +317,22 @@ export function usePOSSystem() {
     try {
       setSyncing(true);
       
-      const response = await apiClient.post('/api/transactions', {
-        customer_id: entry.customer_id || null,
-        total_amount: entry.total_amount,
+      const response = await apiClient.post('/api/sales', {
+        customerId: entry.customer_id || null,
+        customerPhone: entry.customer_phone || null,
+        totalAmount: entry.total_amount,
         subtotal: entry.subtotal,
-        tax_amount: entry.tax_amount,
-        discount_amount: entry.discount_amount,
-        payment_method: entry.payment_method,
-        idb_id: entry.id,
+        taxAmount: entry.tax_amount,
+        discountAmount: entry.discount_amount,
+        paymentMethod: entry.payment_method,
+        isCredit: entry.is_credit || false,
+        notes: `Offline IDB ref: ${entry.id}`,
         items: entry.items.map((it: any) => ({
-          product_id: it.product.id,
+          productId: it.product.id,
           quantity: it.quantity,
-          unit_price: Number(it.product.price) || 0,
-          total_price: (Number(it.product.price) || 0) * it.quantity
+          unitPrice: Number(it.product.price) || 0,
+          discount: 0,
+          totalPrice: (Number(it.product.price) || 0) * it.quantity
         }))
       });
 

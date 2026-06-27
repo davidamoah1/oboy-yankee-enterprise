@@ -108,7 +108,7 @@ export default function CustomersPage() {
       .then((response) => {
         setLoading(false);
         const data = response.data?.data || response.data || [];
-        if (data && data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           const mapped: Customer[] = data.map((c: any) => ({
             id: c.id,
             name: c.name,

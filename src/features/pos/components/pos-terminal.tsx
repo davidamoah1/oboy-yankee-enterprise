@@ -24,7 +24,9 @@ import {
   X,
   TrendingUp,
   Activity,
-  RefreshCw
+  RefreshCw,
+  HandCoins,
+  Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -95,7 +97,8 @@ export function POSTerminal() {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, total } = usePOSStore();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'momo' | 'split'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'momo' | 'split' | 'credit'>('cash');
+  const [momoProvider, setMomoProvider] = useState<'mtn' | 'telecel' | 'airteltigo'>('mtn');
   const [splitCash, setSplitCash] = useState<string>('');
   const [splitMomo, setSplitMomo] = useState<string>('');
   const [splitCard, setSplitCard] = useState<string>('');
@@ -122,9 +125,9 @@ export function POSTerminal() {
   const fetchRecentTransactions = useCallback(async () => {
     setIsLoadingRecent(true);
     try {
-      const response = await apiClient.get('/api/transactions');
+      const response = await apiClient.get('/api/sales');
       const data = response.data?.data || response.data || [];
-      setRecentSales(data.slice(0, 30));
+      setRecentSales(Array.isArray(data) ? data.slice(0, 30) : []);
     } catch (err) {
       console.error("Failed to fetch recent transactions for chart:", err);
     } finally {
@@ -344,7 +347,7 @@ export function POSTerminal() {
       return;
     }
 
-    const totalWithTax = total * 1.15;
+    const totalWithTax = total * 1.21;
 
     // Validate details for split payments
     if (paymentMethod === 'split') {
@@ -361,18 +364,21 @@ export function POSTerminal() {
     const toastId = toast.loading('Recording transaction...');
 
     try {
+      const momoLabel = momoProvider === 'mtn' ? 'MTN MoMo' : momoProvider === 'telecel' ? 'Telecel Cash' : 'AirtelTigo Cash';
       const payloadPaymentMethod = paymentMethod === 'split' 
-        ? `Split (Cash:₵${parseFloat(splitCash) || 0}, MoMo:₵${parseFloat(splitMomo) || 0}, Card:₵${parseFloat(splitCard) || 0})`
-        : paymentMethod;
+        ? `Split (Cash:₵${parseFloat(splitCash) || 0}, ${momoLabel}:₵${parseFloat(splitMomo) || 0}, Card:₵${parseFloat(splitCard) || 0})`
+        : paymentMethod === 'momo' ? momoLabel : paymentMethod;
 
       const result = await recordSale({
         items: [...cart],
         total_amount: totalWithTax,
         subtotal: total,
-        tax_amount: total * 0.15,
+        tax_amount: total * 0.21,
         discount_amount: 0,
         payment_method: payloadPaymentMethod,
-        customer_id: null
+        customer_id: null,
+        customer_phone: customerPhone || null,
+        is_credit: paymentMethod === 'credit'
       });
 
       if (result && result.saleId) {
@@ -389,7 +395,7 @@ export function POSTerminal() {
           items: [...cart],
           total: totalWithTax,
           subtotal: total,
-          tax: total * 0.15,
+          tax: total * 0.21,
           paymentMethod: payloadPaymentMethod,
           isOffline: !isOnline,
           date: new Date().toISOString()
@@ -660,20 +666,33 @@ export function POSTerminal() {
                 <span>₵{total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                <span>Tax (NHIL/GET/VAT)</span>
+                <span>NHIL (2.5%)</span>
+                <span>₵{(total * 0.025).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <span>GETFL (2.5%)</span>
+                <span>₵{(total * 0.025).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <span>VAT (15%)</span>
                 <span>₵{(total * 0.15).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <span>COVID HRL (1%)</span>
+                <span>₵{(total * 0.01).toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-end pt-1.5 border-t border-white/[0.05]">
                 <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Terminal Value</span>
-                <span className="text-xl sm:text-2xl font-black italic tracking-tighter text-emerald-500 leading-none">₵{(total * 1.15).toFixed(2)}</span>
+                <span className="text-xl sm:text-2xl font-black italic tracking-tighter text-emerald-500 leading-none">₵{(total * 1.21).toFixed(2)}</span>
               </div>
             </div>
  
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-5 gap-1.5">
                {[
                  { id: 'cash', label: 'Cash', icon: Wallet },
                  { id: 'card', label: 'Card', icon: CreditCard },
                  { id: 'momo', label: 'Momo', icon: Smartphone },
+                 { id: 'credit', label: 'Credit', icon: HandCoins },
                  { id: 'split', label: 'Split', icon: Activity }
                ].map(method => (
                   <Button 
@@ -700,6 +719,35 @@ export function POSTerminal() {
                ))}
             </div>
 
+            {paymentMethod === 'momo' && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="p-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-2 mt-2"
+              >
+                <span className="text-[8px] font-black uppercase text-yellow-500 tracking-wider block mb-2">Select Mobile Money Provider</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'mtn', label: 'MTN MoMo', color: 'bg-yellow-500/20 border-yellow-500/50 text-yellow-500' },
+                    { id: 'telecel', label: 'Telecel Cash', color: 'bg-red-500/20 border-red-500/50 text-red-500' },
+                    { id: 'airteltigo', label: 'AT Cash', color: 'bg-blue-500/20 border-blue-500/50 text-blue-500' },
+                  ].map(provider => (
+                    <button
+                      key={provider.id}
+                      type="button"
+                      onClick={() => setMomoProvider(provider.id as any)}
+                      className={cn(
+                        "h-9 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all",
+                        momoProvider === provider.id ? provider.color : "border-white/5 bg-white/5 text-slate-500 hover:bg-white/10"
+                      )}
+                    >
+                      {provider.label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {paymentMethod === 'split' && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
@@ -708,7 +756,7 @@ export function POSTerminal() {
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[8px] font-black uppercase text-amber-500 tracking-wider">Configure Split Payments</span>
-                  <span className="text-[9px] font-black text-slate-400">Total: ₵{(total * 1.15).toFixed(2)}</span>
+                  <span className="text-[9px] font-black text-slate-400">Total: ₵{(total * 1.21).toFixed(2)}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
@@ -722,7 +770,7 @@ export function POSTerminal() {
                     />
                   </div>
                   <div>
-                    <span className="text-[7px] font-black text-slate-500 uppercase block mb-1">Momo</span>
+                    <span className="text-[7px] font-black text-slate-500 uppercase block mb-1">{momoProvider === 'mtn' ? 'MTN' : momoProvider === 'telecel' ? 'Telecel' : 'AT'}</span>
                     <Input 
                       type="number" 
                       placeholder="0.00" 
@@ -747,7 +795,7 @@ export function POSTerminal() {
                   const momoVal = parseFloat(splitMomo) || 0;
                   const cardVal = parseFloat(splitCard) || 0;
                   const currentSum = cashVal + momoVal + cardVal;
-                  const totalWithTax = total * 1.15;
+                  const totalWithTax = total * 1.21;
                   const isMatching = Math.abs(currentSum - totalWithTax) < 0.05;
                   const diff = totalWithTax - currentSum;
                   return (
@@ -764,6 +812,24 @@ export function POSTerminal() {
               </motion.div>
             )}
  
+            {/* Customer Phone for SMS Receipt */}
+            <div className="flex items-center gap-2">
+              <Input 
+                placeholder="Customer phone for SMS receipt (optional)"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                className="h-9 text-[10px] font-mono font-bold bg-white/[0.02] border-white/10 rounded-xl text-white placeholder-slate-600 px-3 focus:ring-1 focus:ring-emerald-500 focus-visible:ring-1 focus-visible:ring-offset-0 focus:border-emerald-500/50 flex-1"
+              />
+              {customerPhone && (
+                <button
+                  onClick={() => setCustomerPhone('')}
+                  className="text-[9px] font-black uppercase text-slate-500 hover:text-red-400 transition-colors px-2 shrink-0"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
             <Button 
               type="button"
               onClick={handleCheckout}
@@ -787,7 +853,7 @@ export function POSTerminal() {
               <ShoppingCart className="h-4 w-4" />
               <span>Current Order ({cartItemCount})</span>
             </div>
-            <span className="font-extrabold text-xs">₵{(total * 1.15).toFixed(2)}</span>
+            <span className="font-extrabold text-xs">₵{(total * 1.21).toFixed(2)}</span>
           </Button>
         </div>
       )}
@@ -1132,7 +1198,7 @@ export function POSTerminal() {
                     <span>₵{completedSale.subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
-                    <span className="uppercase tracking-wider">Taxation (GET/VAT 15%)</span>
+                    <span className="uppercase tracking-wider">NHIL/GETFL/VAT/COVID (21%)</span>
                     <span>₵{completedSale.tax.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-[13px] font-black pt-2.5 border-t border-white/[0.05] text-emerald-400">
@@ -1214,7 +1280,7 @@ export function POSTerminal() {
                           `*Items Purchased:* \n${completedSale.items.map((it: any) => `• ${it.product.name} (x${it.quantity}) - GH₵${(parseFloat(it.product.price) * it.quantity).toFixed(2)}`).join('\n')}\n` +
                           `=============================\n` +
                           `*Subtotal:* GH₵${completedSale.subtotal.toFixed(2)}\n` +
-                          `*GET/VAT Tax:* GH₵${completedSale.tax.toFixed(2)}\n` +
+                          `*NHIL/GETFL/VAT/COVID (21%):* GH₵${completedSale.tax.toFixed(2)}\n` +
                           `*Grand Total:* GH₵${completedSale.total.toFixed(2)}\n\n` +
                           `*Settlement:* ${completedSale.paymentMethod}\n\n` +
                           `Thank you for shopping with us! Digital Receipt link: ${window.location.origin}/receipts/${completedSale.saleId}`

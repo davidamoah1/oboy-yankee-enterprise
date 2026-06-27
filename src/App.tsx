@@ -9,7 +9,9 @@ import { ThemeProvider } from "./components/theme-provider";
 import { AppLayout } from "./layouts/app-layout";
 import { TenantLayout } from "./layouts/tenant-layout";
 import { RoleGuard } from "./components/auth/role-guard";
+import { ProtectedRoute } from "./components/auth/protected-route";
 import { useAuth } from "./contexts/auth-context";
+import { UserRole } from "./types/auth";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
 import { useOfflineSync } from "./hooks/use-offline-sync";
@@ -33,9 +35,15 @@ import InvoicesPage from "./pages/tenant/invoices";
 import MobileMoneyPage from "./pages/tenant/mobile-money";
 import OnlineStorePage from "./pages/tenant/online-store";
 import AccountingPage from "./pages/tenant/accounting";
+import ZReportsPage from "./pages/tenant/z-reports";
+import AirtimePage from "./pages/tenant/airtime";
+import BillPaymentsPage from "./pages/tenant/bill-payments";
+import CreditSalesPage from "./pages/tenant/credit-sales";
+import ReturnsPage from "./pages/tenant/returns";
+import ProfitAnalysisPage from "./pages/tenant/profit-analysis";
+import PromotionsPage from "./pages/tenant/promotions";
 
 import LoginPage from "./pages/auth/login";
-import RegisterPage from "./pages/auth/register";
 import VerifyReceiptPage from "./pages/verify-receipt";
 
 const LoadingFallback = () => (
@@ -77,8 +85,7 @@ export default function App() {
             <Routes>
             <Route element={<AppLayout />}>
               {/* Auth */}
-              <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
-              <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
+              <Route path="/login" element={isAuthenticated ? <Navigate to="/pos" replace /> : <LoginPage />} />
 
               {/* Public receipt verification */}
               <Route path="/verify-receipt/:receiptId" element={<VerifyReceiptPage />} />
@@ -91,29 +98,36 @@ export default function App() {
                   </RoleGuard>
                 }
               >
-                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER]}><DashboardPage /></ProtectedRoute>} />
                 <Route path="/pos" element={<POSPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/receipts" element={<ReceiptsPage />} />
                 <Route path="/receipts/:receiptId" element={<ReceiptDetailPage />} />
                 <Route path="/sales" element={<SalesHistoryPage />} />
-                <Route path="/invoices" element={<InvoicesPage />} />
-                <Route path="/expenses" element={<ExpensesPage />} />
-                <Route path="/accounting" element={<AccountingPage />} />
+                <Route path="/invoices" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><InvoicesPage /></ProtectedRoute>} />
+                <Route path="/expenses" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER, UserRole.ACCOUNTANT]}><ExpensesPage /></ProtectedRoute>} />
+                <Route path="/accounting" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.ACCOUNTANT]}><AccountingPage /></ProtectedRoute>} />
                 <Route path="/mobile-money" element={<MobileMoneyPage />} />
-                <Route path="/staff" element={<StaffPage />} />
-                <Route path="/payroll" element={<PayrollPage />} />
-                <Route path="/suppliers" element={<SuppliersPage />} />
+                <Route path="/staff" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.HR]}><StaffPage /></ProtectedRoute>} />
+                <Route path="/payroll" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.HR]}><PayrollPage /></ProtectedRoute>} />
+                <Route path="/suppliers" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.STORE_KEEPER]}><SuppliersPage /></ProtectedRoute>} />
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/online-store" element={<OnlineStorePage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/intelligence" element={<IntelligencePage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/reports" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER]}><ReportsPage /></ProtectedRoute>} />
+                <Route path="/intelligence" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER]}><IntelligencePage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN]}><SettingsPage /></ProtectedRoute>} />
+                <Route path="/z-reports" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER]}><ZReportsPage /></ProtectedRoute>} />
+                <Route path="/airtime" element={<AirtimePage />} />
+                <Route path="/bill-payments" element={<BillPaymentsPage />} />
+                <Route path="/credit-sales" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><CreditSalesPage /></ProtectedRoute>} />
+                <Route path="/returns" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER]}><ReturnsPage /></ProtectedRoute>} />
+                <Route path="/profit-analysis" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><ProfitAnalysisPage /></ProtectedRoute>} />
+                <Route path="/promotions" element={<ProtectedRoute allowedRoles={[UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER]}><PromotionsPage /></ProtectedRoute>} />
                 <Route path="/support" element={<SupportPage />} />
               </Route>
 
               {/* Fallback */}
-              <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+              <Route path="*" element={<Navigate to={isAuthenticated ? "/pos" : "/login"} replace />} />
             </Route>
           </Routes>
           )}

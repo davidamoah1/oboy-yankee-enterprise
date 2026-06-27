@@ -230,10 +230,10 @@ export function TenantLayout() {
 
           <div className="fixed bottom-0 inset-x-0 h-16 bg-background/95 backdrop-blur-xl border-t border-border flex items-center justify-around px-2 z-40 lg:hidden shadow-lg safe-bottom">
             <Link
-              to="/dashboard"
+              to="/pos"
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full text-muted-foreground hover:text-indigo-500 transition-colors",
-                location.pathname === '/dashboard' && "text-indigo-500"
+                location.pathname.startsWith('/pos') && "text-indigo-500"
               )}
             >
               <LayoutDashboard className="h-5 w-5" />

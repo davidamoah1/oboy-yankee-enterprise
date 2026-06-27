@@ -84,7 +84,7 @@ export default function PricingPage() {
         navigate('/onboard/payment');
       }
     } else {
-      navigate('/register');
+      navigate('/login');
     }
   };
 

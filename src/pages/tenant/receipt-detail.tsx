@@ -39,9 +39,15 @@ interface LoadedReceipt {
   items: ReceiptItem[];
   subtotal: number;
   tax: number;
+  nhilAmount?: number;
+  getfundAmount?: number;
+  vatAmount?: number;
+  covidHrlAmount?: number;
   discount: number;
   total: number;
   paymentMethod: string;
+  isCredit?: boolean;
+  receiptNumber?: string;
   blockchainId?: string;
 }
 
@@ -63,25 +69,25 @@ export default function ReceiptDetailPage() {
            const { apiClient } = await import("@/lib/api-client");
            await Promise.race([
              (async () => {
-               const response = await apiClient.get(`/api/transactions/${receiptId}`);
+               const response = await apiClient.get(`/api/sales/${receiptId}`);
                const tx = response.data?.data || response.data;
 
                if (tx) {
                  let fetchedItems: ReceiptItem[] = [];
                  if (tx.items && tx.items.length > 0) {
                    fetchedItems = tx.items.map((it: any) => ({
-                     name: it.product_name || it.name || "Retail Item",
+                     name: it.product?.name || it.name || "Retail Item",
                      qty: it.quantity,
-                     price: Number(it.unit_price) || 0,
-                     total: Number(it.total_price) || 0,
-                     id: it.product_sku ? `ITM-${it.product_sku}` : undefined
+                     price: Number(it.unitPrice) || 0,
+                     total: Number(it.totalPrice) || 0,
+                     id: it.product?.sku ? `ITM-${it.product.sku}` : undefined
                    }));
                  } else {
                    fetchedItems = [{
                      name: "General Store Items",
                      qty: 1,
-                     price: Number(tx.total_amount) || 0,
-                     total: Number(tx.total_amount) || 0,
+                     price: Number(tx.totalAmount) || 0,
+                     total: Number(tx.totalAmount) || 0,
                      id: "GEN-01"
                    }];
                  }
@@ -91,15 +97,21 @@ export default function ReceiptDetailPage() {
                  dbReceipt = {
                    id: tx.id,
                    shopName,
-                   customerName: "Walk-in Customer",
-                   cashierName: "Store Clerk",
-                   dateString: new Date(tx.created_at).toLocaleString(),
+                   customerName: tx.customer?.name || "Walk-in Customer",
+                   cashierName: tx.user?.fullName || "Store Clerk",
+                   dateString: new Date(tx.createdAt).toLocaleString(),
                    items: fetchedItems,
-                   subtotal: Number(tx.subtotal) || Number(tx.total_amount),
-                   tax: Number(tx.tax_amount) || 0,
-                   discount: Number(tx.discount_amount) || 0,
-                   total: Number(tx.total_amount) || 0,
-                   paymentMethod: tx.payment_method || "Mobile Money",
+                   subtotal: Number(tx.subtotal) || Number(tx.totalAmount),
+                   tax: Number(tx.taxAmount) || 0,
+                   nhilAmount: Number(tx.nhilAmount) || 0,
+                   getfundAmount: Number(tx.getfundAmount) || 0,
+                   vatAmount: Number(tx.vatAmount) || 0,
+                   covidHrlAmount: Number(tx.covidHrlAmount) || 0,
+                   discount: Number(tx.discountAmount) || 0,
+                   total: Number(tx.totalAmount) || 0,
+                   paymentMethod: tx.paymentMethod || "Mobile Money",
+                   isCredit: tx.isCredit || false,
+                   receiptNumber: tx.receiptNumber || tx.id,
                    blockchainId: `NEXA-REF-${tx.id.substring(0, 8).toUpperCase()}`,
                  };
                }
@@ -259,14 +271,42 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
                          <span>Subtotal</span>
                          <span>₵ {receiptData.subtotal.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground italic">
-                         <span>Tax (5%)</span>
-                         <span>₵ {receiptData.tax.toFixed(2)}</span>
-                      </div>
                       {receiptData.discount > 0 && (
                         <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-green-500 italic">
                            <span>Discount Applied</span>
                            <span>-₵ {receiptData.discount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {receiptData.nhilAmount && receiptData.nhilAmount > 0 ? (
+                        <>
+                          <div className="pt-2 border-t border-white/5">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic mb-2">GRA Tax Breakdown</p>
+                          </div>
+                          <div className="flex justify-between text-[10px] font-bold tracking-wider text-muted-foreground italic">
+                             <span>NHIL (2.5%)</span>
+                             <span>₵ {receiptData.nhilAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] font-bold tracking-wider text-muted-foreground italic">
+                             <span>GETFL (2.5%)</span>
+                             <span>₵ {receiptData.getfundAmount?.toFixed(2) || '0.00'}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] font-bold tracking-wider text-muted-foreground italic">
+                             <span>VAT (15%)</span>
+                             <span>₵ {receiptData.vatAmount?.toFixed(2) || '0.00'}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] font-bold tracking-wider text-muted-foreground italic">
+                             <span>COVID-19 HRL (1%)</span>
+                             <span>₵ {receiptData.covidHrlAmount?.toFixed(2) || '0.00'}</span>
+                          </div>
+                          <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground italic pt-2 border-t border-white/5">
+                             <span>Total Tax</span>
+                             <span>₵ {receiptData.tax.toFixed(2)}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground italic">
+                           <span>Tax</span>
+                           <span>₵ {receiptData.tax.toFixed(2)}</span>
                         </div>
                       )}
                    </div>
@@ -276,7 +316,9 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
                          <h2 className="text-5xl font-black italic tracking-tighter text-primary">₵ {receiptData.total.toFixed(2)}</h2>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                         <Badge className="bg-green-500/10 text-green-500 border-none px-4 py-1.5 rounded-full font-black uppercase tracking-[0.2em] text-[9px] italic">Fully Paid</Badge>
+                         <Badge className={receiptData.isCredit ? "bg-orange-500/10 text-orange-500 border-none px-4 py-1.5 rounded-full font-black uppercase tracking-[0.2em] text-[9px] italic" : "bg-green-500/10 text-green-500 border-none px-4 py-1.5 rounded-full font-black uppercase tracking-[0.2em] text-[9px] italic"}>
+                           {receiptData.isCredit ? "Credit Sale" : "Fully Paid"}
+                         </Badge>
                          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground italic opacity-40">Sale Completed</span>
                       </div>
                    </div>

@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/auth-context';
-import { supabase } from '@/lib/supabase';
+import { apiClient } from '@/lib/api-client';
 import { offlinePOS, OfflineAttendanceLog } from '../services/offline-pos';
 import { toast } from 'sonner';
 
@@ -39,7 +39,7 @@ interface StaffProfile {
 }
 
 export function ShiftTracker({ isOpen, onClose, isOnline }: ShiftTrackerProps) {
-  const { profile } = useAuth();
+  const { user, company } = useAuth();
   const [staffList, setStaffList] = useState<StaffProfile[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [selectedStaffName, setSelectedStaffName] = useState<string>('');
@@ -58,25 +58,26 @@ export function ShiftTracker({ isOpen, onClose, isOnline }: ShiftTrackerProps) {
 
     // Fallback static staff
     const fallbackStaff: StaffProfile[] = [
-      { id: profile?.id || 'cashier-01', full_name: profile?.full_name || 'Active Cashier', role: profile?.role || 'Staff' },
+      { id: user?.id || 'cashier-01', full_name: user?.fullName || 'Active Cashier', role: user?.role || 'Staff' },
       { id: 'manager-01', full_name: 'Abigail Bentil', role: 'Store Manager' },
       { id: 'clerk-02', full_name: 'Kofi Mensah', role: 'Checkout Clerk' },
       { id: 'admin-03', full_name: 'Emmanuel Osei', role: 'SME Admin' }
     ];
 
     try {
-      if (isOnline && profile?.tenant_id) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, role')
-          .eq('tenant_id', profile.tenant_id);
-        
-        if (!error && data) {
-          loadedStaff = data.map(p => ({
-            id: p.id,
-            full_name: p.full_name || 'Unnamed Staff',
-            role: p.role
-          }));
+      if (isOnline && company?.id) {
+        try {
+          const response = await apiClient.get('/api/users');
+          const data = response.data?.data || response.data || [];
+          if (Array.isArray(data)) {
+            loadedStaff = data.map((p: any) => ({
+              id: p.id,
+              full_name: p.fullName || p.full_name || 'Unnamed Staff',
+              role: p.role
+            }));
+          }
+        } catch (apiErr) {
+          console.warn('Could not load staff list from API', apiErr);
         }
       }
     } catch (err) {
@@ -90,7 +91,7 @@ export function ShiftTracker({ isOpen, onClose, isOnline }: ShiftTrackerProps) {
     setStaffList(loadedStaff);
 
     // Default select current user
-    const foundUser = loadedStaff.find(s => s.id === profile?.id);
+    const foundUser = loadedStaff.find(s => s.id === user?.id);
     if (foundUser) {
       setSelectedStaffId(foundUser.id);
       setSelectedStaffName(foundUser.full_name);
@@ -110,7 +111,7 @@ export function ShiftTracker({ isOpen, onClose, isOnline }: ShiftTrackerProps) {
     }
     
     setLoading(false);
-  }, [profile?.tenant_id, profile?.id, profile?.full_name, profile?.role, isOnline]);
+  }, [company?.id, user?.id, user?.fullName, user?.role, isOnline]);
 
   // Synchronize attendance logs to remote table if online
   const syncAttendanceLogs = useCallback(async () => {
@@ -127,27 +128,19 @@ export function ShiftTracker({ isOpen, onClose, isOnline }: ShiftTrackerProps) {
       for (const log of pendingLogs) {
         // Attempt to insert into attendance_logs or shifts table online
         try {
-          const { error } = await supabase
-            .from('attendance_logs')
-            .insert({
+          try {
+            await apiClient.post('/api/attendance', {
               id: log.id,
-              staff_id: log.staff_id,
-              staff_name: log.staff_name,
+              staffId: log.staff_id,
+              staffName: log.staff_name,
               action: log.action,
               timestamp: log.timestamp,
-              notes: log.notes,
-              tenant_id: profile?.tenant_id
+              notes: log.notes
             });
-          
-          if (!error) {
             await offlinePOS.markAttendanceLogSynced(log.id);
             successCount++;
-          } else {
-            // Check if table missing error, if yes, fake sync locally since database schema might not have been provisioned by user
-            if (error.code === 'P0001' || error.message?.includes('does not exist')) {
-              await offlinePOS.markAttendanceLogSynced(log.id);
-              successCount++;
-            }
+          } catch (syncErr: any) {
+            console.warn('Failed to sync single log:', syncErr);
           }
         } catch (singleErr) {
           console.warn("Failed to sync single log:", singleErr);
@@ -165,7 +158,7 @@ export function ShiftTracker({ isOpen, onClose, isOnline }: ShiftTrackerProps) {
     } finally {
       setSyncingLogs(false);
     }
-  }, [isOnline, profile?.tenant_id]);
+  }, [isOnline]);
 
   useEffect(() => {
     if (isOpen) {

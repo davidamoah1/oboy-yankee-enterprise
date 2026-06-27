@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
+import { UserRole } from '@/types/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,9 +23,10 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      const profile = await signIn(email, password);
       toast.success('Successfully logged in!');
-      navigate('/dashboard');
+      const dashboardRoles = [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER];
+      navigate(dashboardRoles.includes(profile.role) ? '/dashboard' : '/pos');
     } catch (error: any) {
       toast.error(error.response?.data?.error || error.message || 'Failed to login');
     } finally {
@@ -96,7 +98,7 @@ export function LoginForm() {
           </form>
         </CardContent>
         <CardFooter className="pb-8 pt-4 justify-center">
-          <p className="text-slate-500 font-bold text-xs">Need an account? <Link to="/register" className="text-indigo-500 hover:underline">Register</Link></p>
+          <p className="text-slate-500 font-bold text-xs">Contact your shop owner to get an account.</p>
         </CardFooter>
       </Card>
     </div>

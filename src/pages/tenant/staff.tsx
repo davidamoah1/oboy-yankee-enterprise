@@ -183,7 +183,7 @@ export default function StaffPage() {
       try {
         const response = await apiClient.get('/api/users');
         const data = response.data?.data || response.data || [];
-        if (data && data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           const dbEmails = new Set(data.map((s: any) => String(s.email || '').toLowerCase()).filter(Boolean));
           const nonDupLocal = localStaffList.filter((ls: any) => ls.email && !dbEmails.has(String(ls.email).toLowerCase()));
           mergedStaff = [...data, ...nonDupLocal];

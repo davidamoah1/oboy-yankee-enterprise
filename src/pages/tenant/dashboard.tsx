@@ -49,20 +49,14 @@ import { NexaIntelligenceHub } from "@/components/intelligence/nexa-intelligence
 import { NexaAssistant } from "@/components/intelligence/nexa-assistant";
 import { offlinePOS } from "@/features/pos/services/offline-pos";
 
-const salesData = [
-  { name: 'Mon', total: 1200, orders: 45 },
-  { name: 'Tue', total: 1900, orders: 52 },
-  { name: 'Wed', total: 1500, orders: 38 },
-  { name: 'Thu', total: 2100, orders: 61 },
-  { name: 'Fri', total: 2800, orders: 75 },
-  { name: 'Sat', total: 3400, orders: 85 },
-  { name: 'Sun', total: 1100, orders: 20 },
-];
-
-const categoryData = [
-  { name: 'Essentials', value: 45, color: "oklch(0.627 0.265 149.214)" }, // Emerald
-  { name: 'Technical', value: 30, color: "oklch(0.398 0.07 227.392)" }, // Charcoal/Slate
-  { name: 'Food', value: 25, color: "oklch(0.817 0.17 76.634)" }, // Gold
+const defaultSalesData = [
+  { name: 'Sun', total: 0, orders: 0 },
+  { name: 'Mon', total: 0, orders: 0 },
+  { name: 'Tue', total: 0, orders: 0 },
+  { name: 'Wed', total: 0, orders: 0 },
+  { name: 'Thu', total: 0, orders: 0 },
+  { name: 'Fri', total: 0, orders: 0 },
+  { name: 'Sat', total: 0, orders: 0 },
 ];
 
 export default function TenantDashboard() {
@@ -70,15 +64,27 @@ export default function TenantDashboard() {
   const navigate = useNavigate();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
-  const [stats, setStats] = useState({ 
-    revenue: 0, 
-    orders: 0, 
-    customers: 0, 
-    items: 0,
-    dailyGrowth: 12.5,
-    activeStaff: 0
+  const [stats, setStats] = useState<any>({
+    todaySales: 0,
+    todaySalesCount: 0,
+    todayProfit: 0,
+    monthSales: 0,
+    monthSalesCount: 0,
+    monthProfit: 0,
+    monthExpenses: 0,
+    netProfit: 0,
+    totalCustomers: 0,
+    totalProducts: 0,
+    lowStockProducts: 0,
+    todayExpenses: 0,
+    activeStaff: 0,
+    creditOutstanding: 0,
   });
   const [lowStock, setLowStock] = useState<any[]>([]);
+  const [salesData, setSalesData] = useState(defaultSalesData);
+  const [topProducts, setTopProducts] = useState<any[]>([]);
+  const [recentSales, setRecentSales] = useState<any[]>([]);
+  const [paymentBreakdown, setPaymentBreakdown] = useState({ cash: 0, momo: 0, card: 0, credit: 0 });
   const [loading, setLoading] = useState(true);
 
   const selectedTypeRaw = company?.settings?.category || "Retail";
@@ -234,35 +240,46 @@ export default function TenantDashboard() {
     
     async function fetchDashboardIntelligence() {
       try {
-        const [txRes, prodRes] = await Promise.all([
-          apiClient.get('/api/transactions'),
+        const [statsRes, prodRes] = await Promise.all([
+          apiClient.get('/api/dashboard/stats'),
           apiClient.get('/api/products')
         ]);
 
-        const txData = txRes.data?.data || txRes.data || [];
+        const dashData = statsRes.data || {};
         const prodData = prodRes.data?.data || prodRes.data || [];
 
-        if (txData) {
-          const revenue = txData.reduce((acc: number, curr: any) => acc + (curr.total_amount || 0), 0);
-          setStats(prev => ({
-            ...prev,
-            revenue,
-            orders: txData.length,
-          }));
-        }
-
-        let allProducts: any[] = prodData || [];
-
-        // Determine products that are low in stock based on their own low_stock_threshold
-        const lowStockItems = allProducts.filter((p: any) => {
-          const threshold = p.low_stock_threshold !== null && p.low_stock_threshold !== undefined
-            ? Number(p.low_stock_threshold)
-            : 10;
-          return p.stock_quantity <= threshold;
+        setStats({
+          todaySales: dashData.todaySales || 0,
+          todaySalesCount: dashData.todaySalesCount || 0,
+          todayProfit: dashData.todayProfit || 0,
+          monthSales: dashData.monthSales || 0,
+          monthSalesCount: dashData.monthSalesCount || 0,
+          monthProfit: dashData.monthProfit || 0,
+          monthExpenses: dashData.monthExpenses || 0,
+          netProfit: dashData.netProfit || 0,
+          totalCustomers: dashData.totalCustomers || 0,
+          totalProducts: dashData.totalProducts || 0,
+          lowStockProducts: dashData.lowStockProducts || 0,
+          todayExpenses: dashData.todayExpenses || 0,
+          activeStaff: dashData.activeStaff || 0,
+          creditOutstanding: dashData.creditOutstanding || 0,
         });
 
+        if (dashData.weeklyChart && dashData.weeklyChart.length > 0) {
+          setSalesData(dashData.weeklyChart);
+        }
+        if (dashData.topProducts) setTopProducts(dashData.topProducts);
+        if (dashData.recentSales) setRecentSales(dashData.recentSales);
+        if (dashData.paymentBreakdown) setPaymentBreakdown(dashData.paymentBreakdown);
+
+        let allProducts: any[] = Array.isArray(prodData) ? prodData : [];
+        const lowStockItems = allProducts.filter((p: any) => {
+          const threshold = p.lowStockThreshold !== null && p.lowStockThreshold !== undefined
+            ? Number(p.lowStockThreshold)
+            : 10;
+          return Number(p.stockQuantity) <= threshold;
+        });
         setLowStock(lowStockItems);
-        setStats(prev => ({ ...prev, items: allProducts.length }));
 
       } catch (err) {
         console.error("Dashboard Intelligence Failure:", err);
@@ -531,10 +548,14 @@ export default function TenantDashboard() {
       {/* Core KPIs Bento */}
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Total Earnings', value: `₵ ${stats.revenue.toLocaleString()}`, trend: stats.revenue > 0 ? `+${stats.dailyGrowth}%` : 'Zero', status: 'optimal', icon: TrendingUp, href: '/reports' },
-          { label: 'Store Items in Stock', value: stats.items.toString(), trend: 'Registered Items', status: 'neutral', icon: Package, href: '/inventory' },
-          { label: 'Staff On Duty', value: stats.activeStaff.toString(), trend: 'Active Employees', status: 'positive', icon: Users, href: '/staff' },
-          { label: 'Total Orders Made', value: stats.orders.toString(), trend: 'Completed Sales', status: 'positive', icon: History, href: '/sales' },
+          { label: "Today's Sales", value: `₵ ${stats.todaySales.toLocaleString()}`, trend: `${stats.todaySalesCount} orders`, status: 'optimal', icon: TrendingUp, href: '/sales' },
+          { label: "Today's Profit", value: `₵ ${stats.todayProfit.toLocaleString()}`, trend: stats.todayProfit > 0 ? 'Profit' : 'No profit', status: 'positive', icon: ArrowUpRight, href: '/profit-analysis' },
+          { label: 'Products in Stock', value: stats.totalProducts.toString(), trend: `${stats.lowStockProducts} low stock`, status: stats.lowStockProducts > 0 ? 'neutral' : 'positive', icon: Package, href: '/inventory' },
+          { label: 'Credit Outstanding', value: `₵ ${stats.creditOutstanding.toLocaleString()}`, trend: stats.creditOutstanding > 0 ? 'Unpaid debts' : 'All cleared', status: stats.creditOutstanding > 0 ? 'neutral' : 'positive', icon: ArrowDownRight, href: '/credit-sales' },
+          { label: 'Active Staff', value: stats.activeStaff.toString(), trend: 'On duty', status: 'positive', icon: Users, href: '/staff' },
+          { label: 'Total Customers', value: stats.totalCustomers.toString(), trend: 'Registered', status: 'positive', icon: Users, href: '/customers' },
+          { label: "Month Net Profit", value: `₵ ${stats.netProfit.toLocaleString()}`, trend: stats.netProfit >= 0 ? 'In profit' : 'Loss', status: stats.netProfit >= 0 ? 'optimal' : 'neutral', icon: TrendingUp, href: '/profit-analysis' },
+          { label: "Today's Expenses", value: `₵ ${stats.todayExpenses.toLocaleString()}`, trend: 'Spent today', status: 'neutral', icon: ArrowDownRight, href: '/expenses' },
         ].map((kpi, i) => (
           <motion.div
             key={kpi.label}
@@ -634,6 +655,84 @@ export default function TenantDashboard() {
             </CardContent>
           </Card>
 
+          {/* Top Products & Payment Breakdown */}
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
+              <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+                <div className="space-y-1">
+                  <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground">Top Selling Products</CardTitle>
+                  <CardDescription className="text-xs font-medium text-muted-foreground">Best sellers this month</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="px-2 sm:px-4 pb-4">
+                {topProducts.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={topProducts} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" opacity={0.3} />
+                      <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: 'var(--muted-foreground)' }} />
+                      <YAxis type="category" dataKey="name" width={80} axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: 'var(--muted-foreground)' }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '20px', border: '1px solid var(--border)', padding: '12px' }}
+                        itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: 'var(--primary)' }}
+                        labelStyle={{ fontSize: '11px', fontWeight: 900, color: 'var(--foreground)' }}
+                      />
+                      <Bar dataKey="revenue" radius={[0, 8, 8, 0]} fill="oklch(0.65 0.2 165)" animationDuration={1500} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center opacity-70">
+                    <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mb-3">
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground">No Sales Data Yet</p>
+                    <p className="text-[9px] text-muted-foreground max-w-[150px] mt-1">Top products will appear here once sales are made.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
+              <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+                <div className="space-y-1">
+                  <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground">Payment Methods (7 Days)</CardTitle>
+                  <CardDescription className="text-xs font-medium text-muted-foreground">Cash, MoMo, Card & Credit breakdown</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 sm:px-6 pb-4 space-y-4">
+                {[
+                  { label: 'Cash', value: paymentBreakdown.cash, color: 'bg-emerald-500', text: 'text-emerald-500' },
+                  { label: 'Mobile Money', value: paymentBreakdown.momo, color: 'bg-yellow-500', text: 'text-yellow-500' },
+                  { label: 'Card', value: paymentBreakdown.card, color: 'bg-blue-500', text: 'text-blue-500' },
+                  { label: 'Credit', value: paymentBreakdown.credit, color: 'bg-red-500', text: 'text-red-500' },
+                ].map((pm) => {
+                  const total = paymentBreakdown.cash + paymentBreakdown.momo + paymentBreakdown.card + paymentBreakdown.credit;
+                  const pct = total > 0 ? (pm.value / total) * 100 : 0;
+                  return (
+                    <div key={pm.label} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-foreground">{pm.label}</span>
+                        <span className={cn("text-xs font-black italic tracking-tighter", pm.text)}>₵ {pm.value.toLocaleString()}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                        <div className={cn("h-full rounded-full transition-all duration-1000", pm.color)} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{pct.toFixed(1)}% of total</span>
+                    </div>
+                  );
+                })}
+                {paymentBreakdown.cash + paymentBreakdown.momo + paymentBreakdown.card + paymentBreakdown.credit === 0 && (
+                  <div className="flex flex-col items-center justify-center py-6 text-center opacity-70">
+                    <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mb-3">
+                      <History className="h-6 w-6" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground">No Payment Data Yet</p>
+                    <p className="text-[9px] text-muted-foreground max-w-[150px] mt-1">Payment breakdown will appear here once sales are made.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             {/* Recent Sales Section */}
             <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
@@ -645,34 +744,35 @@ export default function TenantDashboard() {
                 <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,1)]" />
               </CardHeader>
               <CardContent className="px-2 sm:px-4 pb-4 space-y-3">
-                 {[
-                   { id: '1023', amt: '₵ 450', status: 'Done', method: 'MoMo', time: '2m' },
-                   { id: '1022', amt: '₵ 1,200', status: 'Pending', method: 'Cash', time: '14m' },
-                   { id: '1021', amt: '₵ 340', status: 'Done', method: 'Card', time: '1h' },
-                 ].map((tx, i) => (
+                 {recentSales.length > 0 ? recentSales.map((tx, i) => (
                    <div 
-                     key={tx.id} 
+                     key={tx.id || i} 
                      className="group flex items-center justify-between p-4 rounded-2xl border border-border/60 hover:bg-secondary/40 hover:border-emerald-500/20 transition-all cursor-pointer"
                      onClick={() => navigate('/receipts')}
                    >
                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 sm:h-11 sm:h-12 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground group-hover:text-emerald-500 transition-colors border border-border">
-                           {tx.status === 'Done' ? <CheckCircle2 className="h-4.5 w-4.5" /> : <RefreshCw className="h-4.5 w-4.5 animate-spin-slow" />}
+                        <div className="h-10 w-10 sm:h-11 sm:w-12 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground group-hover:text-emerald-500 transition-colors border border-border">
+                           <CheckCircle2 className="h-4.5 w-4.5" />
                         </div>
                         <div>
-                           <div className="font-black text-xs uppercase tracking-widest text-foreground">{tx.method} Sale #{tx.id}</div>
-                           <div className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">{tx.time} ago</div>
+                           <div className="font-black text-xs uppercase tracking-widest text-foreground">{tx.productName}</div>
+                           <div className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">{tx.cashierName} • {tx.paymentMethod}</div>
                         </div>
                      </div>
                      <div className="text-right">
-                        <div className="text-base font-black italic tracking-tighter text-emerald-500">{tx.amt}.00</div>
-                        <Badge variant="outline" className={cn(
-                          "text-[8px] h-5 font-black uppercase tracking-widest border-none px-2",
-                          tx.status === 'Done' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
-                        )}>{tx.status}</Badge>
+                        <div className="text-base font-black italic tracking-tighter text-emerald-500">₵ {tx.amount.toLocaleString()}</div>
+                        <Badge variant="outline" className="text-[8px] h-5 font-black uppercase tracking-widest border-none px-2 bg-emerald-500/10 text-emerald-500">Done</Badge>
                      </div>
                    </div>
-                  ))}
+                  )) : (
+                   <div className="flex flex-col items-center justify-center py-8 text-center opacity-70">
+                      <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-3">
+                         <CheckCircle2 className="h-6 w-6" />
+                      </div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-foreground">No Sales Yet Today</p>
+                      <p className="text-[9px] text-muted-foreground max-w-[150px] mt-1">Sales will appear here as they happen.</p>
+                   </div>
+                  )}
               </CardContent>
             </Card>
 

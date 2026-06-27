@@ -39,7 +39,7 @@ export function RegisterForm() {
         description: 'Welcome to OBOY YANKEE ENTERPRISE.',
       });
 
-      navigate('/dashboard');
+      navigate('/pos');
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Registration failed';
       toast.error('Registration Failed', { description: message, duration: 6000 });

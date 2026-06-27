@@ -19,7 +19,9 @@ import {
   Zap,
   Loader2,
   Bell,
-  Mail
+  Mail,
+  MessageSquare,
+  Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +53,24 @@ export default function SettingsPage() {
   const [subExpiryNotify, setSubExpiryNotify] = useState(true);
   const [invoiceNotify, setInvoiceNotify] = useState(true);
   const [salesNotify, setSalesNotify] = useState(false);
+
+  // SMS states
+  const [smsReceiptsEnabled, setSmsReceiptsEnabled] = useState(true);
+  const [smsDailySummaryEnabled, setSmsDailySummaryEnabled] = useState(true);
+  const [smsTestPhone, setSmsTestPhone] = useState("");
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsSaving, setSmsSaving] = useState(false);
+
+  useEffect(() => {
+    // Fetch SMS settings
+    apiClient.get('/api/sms/settings').then(res => {
+      const data = res.data?.data || res.data;
+      if (data) {
+        setSmsReceiptsEnabled(data.smsReceiptsEnabled !== false);
+        setSmsDailySummaryEnabled(data.smsDailySummaryEnabled !== false);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (company) {
@@ -129,6 +149,9 @@ export default function SettingsPage() {
              </TabsTrigger>
              <TabsTrigger value="security" className="px-10 h-full rounded-[18px] font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-2xl data-[state=active]:shadow-primary/40 transition-all duration-300">
                Security
+             </TabsTrigger>
+             <TabsTrigger value="sms" className="px-10 h-full rounded-[18px] font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-2xl data-[state=active]:shadow-primary/40 transition-all duration-300">
+               SMS
              </TabsTrigger>
            </TabsList>
         </div>
@@ -499,6 +522,103 @@ export default function SettingsPage() {
                  </div>
               </CardContent>
            </Card>
+        </TabsContent>
+
+        <TabsContent value="sms" className="mt-0">
+          <Card className="max-w-3xl border-none shadow-2xl shadow-black/[0.02] bg-card/60 backdrop-blur-xl rounded-[40px] mx-auto p-12 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-10 opacity-[0.03]">
+              <MessageSquare className="h-32 w-32" />
+            </div>
+            <CardHeader className="p-0 mb-10 relative z-10">
+              <CardTitle className="text-2xl font-black italic tracking-tight">SMS Notifications</CardTitle>
+              <CardDescription className="text-sm font-bold text-muted-foreground">
+                Send SMS receipts to customers and daily sales summaries to the shop owner via smsnotifygh.com
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 space-y-8 relative z-10">
+              <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 p-4">
+                <p className="text-xs text-amber-600 font-bold">
+                  Configure SMS_API_KEY and SMS_SENDER_ID in your .env file to enable SMS. Get your API key from smsnotifygh.com
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-6 rounded-2xl bg-muted/30">
+                <div className="space-y-1">
+                  <Label className="text-sm font-bold">SMS Receipts to Customers</Label>
+                  <p className="text-xs text-muted-foreground">Send an SMS receipt to customers after each purchase</p>
+                </div>
+                <Switch
+                  checked={smsReceiptsEnabled}
+                  onCheckedChange={setSmsReceiptsEnabled}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-6 rounded-2xl bg-muted/30">
+                <div className="space-y-1">
+                  <Label className="text-sm font-bold">Daily Sales Summary SMS</Label>
+                  <p className="text-xs text-muted-foreground">Send a daily sales summary to the shop owner when Z-Report is generated</p>
+                </div>
+                <Switch
+                  checked={smsDailySummaryEnabled}
+                  onCheckedChange={setSmsDailySummaryEnabled}
+                />
+              </div>
+
+              <div className="space-y-3 pt-4 border-t">
+                <Label className="text-sm font-bold">Test SMS</Label>
+                <p className="text-xs text-muted-foreground">Send a test SMS to verify your SMS configuration is working</p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. 0241234567"
+                    value={smsTestPhone}
+                    onChange={e => setSmsTestPhone(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    disabled={smsSending || !smsTestPhone}
+                    onClick={async () => {
+                      setSmsSending(true);
+                      try {
+                        await apiClient.post('/api/sms/test', { phoneNumber: smsTestPhone });
+                        toast.success('Test SMS sent successfully!');
+                      } catch (err: any) {
+                        toast.error(err.response?.data?.error || 'Failed to send test SMS');
+                      } finally {
+                        setSmsSending(false);
+                      }
+                    }}
+                  >
+                    {smsSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {smsSending ? 'Sending...' : 'Send Test'}
+                  </Button>
+                </div>
+              </div>
+
+              <Button
+                className="w-full gap-2"
+                disabled={smsSaving}
+                onClick={async () => {
+                  setSmsSaving(true);
+                  try {
+                    await apiClient.put('/api/sms/settings', {
+                      smsReceiptsEnabled,
+                      smsDailySummaryEnabled,
+                    });
+                    toast.success('SMS settings saved!');
+                  } catch (err: any) {
+                    toast.error(err.response?.data?.error || 'Failed to save SMS settings');
+                  } finally {
+                    setSmsSaving(false);
+                  }
+                }}
+              >
+                {smsSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {smsSaving ? 'Saving...' : 'Save SMS Settings'}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

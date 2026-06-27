@@ -196,7 +196,7 @@ export default function ServicesPage() {
            </h3>
            <div className="flex flex-wrap justify-center gap-4">
               <Button asChild className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase tracking-widest text-[10px] border-none shadow-xl shadow-primary/20">
-                 <Link to="/register">Start Free Trial</Link>
+                 <Link to="/login">Get Started</Link>
               </Button>
               <Button asChild variant="outline" className="h-16 px-10 rounded-2xl bg-white/5 hover:bg-white/10 border-white/10 text-white font-black uppercase tracking-widest text-[10px] transition-all">
                  <Link to="/contact">Request Custom Demo</Link>

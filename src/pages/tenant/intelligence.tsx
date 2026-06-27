@@ -138,7 +138,7 @@ export default function OmniBizIntelligencePage() {
         const [custRes, prodRes, txsRes] = await Promise.all([
           apiClient.get('/api/customers'),
           apiClient.get('/api/products'),
-          apiClient.get('/api/transactions')
+          apiClient.get('/api/sales')
         ]);
 
         let hasEnoughData = false;
@@ -146,6 +146,10 @@ export default function OmniBizIntelligencePage() {
         let dbProducts = prodRes.data?.data || prodRes.data || [];
         let dbTransactions = txsRes.data?.data || txsRes.data || [];
         let dbTxItems: any[] = [];
+
+        if (!Array.isArray(dbCustomers)) dbCustomers = [];
+        if (!Array.isArray(dbProducts)) dbProducts = [];
+        if (!Array.isArray(dbTransactions)) dbTransactions = [];
 
         // If we have minimal data, trigger elegant backfilling to render complete BI dashboards
         if (dbTransactions.length >= 10 && dbCustomers.length >= 3) {

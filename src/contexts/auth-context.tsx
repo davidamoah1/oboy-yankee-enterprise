@@ -10,7 +10,7 @@ interface AuthContextType {
   authInitialized: boolean;
   isAuthenticated: boolean;
   permissions: string[];
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<UserProfile>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [fetchProfile]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string): Promise<UserProfile> => {
     const response = await apiClient.post('/api/auth/login', { email, password });
     const { accessToken, refreshToken, user: userData } = response.data;
 
@@ -122,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCompany(userData.company || null);
     setPermissions(userData.permissions || []);
     tokenStorage.cacheUser(profile);
+    return profile;
   }, []);
 
   const signOut = useCallback(async () => {

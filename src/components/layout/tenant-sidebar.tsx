@@ -19,7 +19,14 @@ import {
   Wallet,
   Sparkles,
   ArrowRightCircle,
-  Brain
+  Brain,
+  FileBarChart,
+  Phone,
+  Zap,
+  RotateCcw,
+  HandCoins,
+  TrendingUp,
+  Tag
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -46,10 +53,13 @@ export function TenantSidebar({ onSelect }: SidebarProps) {
     {
       title: 'Main Operations',
       items: [
-        { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER] },
         { label: 'POS Terminal', href: '/pos', icon: ShoppingCart, badge: 'LIVE' },
         { label: 'Sales History', href: '/sales', icon: History },
         { label: 'Receipts', href: '/receipts', icon: Receipt },
+        { label: 'Returns & Refunds', href: '/returns', icon: RotateCcw, isNew: true, roles: [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER] },
+        { label: 'Credit Sales', href: '/credit-sales', icon: HandCoins, isNew: true, roles: [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT] },
+        { label: 'Z-Reports', href: '/z-reports', icon: FileBarChart, isNew: true, roles: [UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
       ]
     },
     {
@@ -64,10 +74,21 @@ export function TenantSidebar({ onSelect }: SidebarProps) {
     {
       title: 'Bookkeeping & Money',
       items: [
-        { label: 'Invoices & Bills', href: '/invoices', icon: CreditCard },
-        { label: 'Expenses', href: '/expenses', icon: Wallet, roles: [UserRole.COMPANY_ADMIN, UserRole.STORE_KEEPER] },
-        { label: 'Bookkeeping', href: '/accounting', icon: Calculator, roles: [UserRole.COMPANY_ADMIN] },
+        { label: 'Invoices & Bills', href: '/invoices', icon: CreditCard, roles: [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT] },
+        { label: 'Expenses', href: '/expenses', icon: Wallet, roles: [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER, UserRole.ACCOUNTANT] },
+        { label: 'Profit Analysis', href: '/profit-analysis', icon: TrendingUp, isNew: true, roles: [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT] },
+        { label: 'Bookkeeping', href: '/accounting', icon: Calculator, roles: [UserRole.COMPANY_ADMIN, UserRole.ACCOUNTANT] },
         { label: 'Staff Salaries', href: '/payroll', icon: History, roles: [UserRole.COMPANY_ADMIN, UserRole.HR] },
+      ]
+    },
+    {
+      title: 'Services & Vendors',
+      items: [
+        { label: 'Airtime & Data', href: '/airtime', icon: Phone, isNew: true },
+        { label: 'Bill Payments', href: '/bill-payments', icon: Zap, isNew: true },
+        { label: 'Promotions', href: '/promotions', icon: Tag, isNew: true, roles: [UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER] },
+        { label: 'Mobile Money (MoMo)', href: '/mobile-money', icon: Sparkles },
+        { label: 'Online Shop', href: '/online-store', icon: ShoppingCart },
       ]
     },
     {
@@ -75,8 +96,6 @@ export function TenantSidebar({ onSelect }: SidebarProps) {
       items: [
         { label: 'Intelligence Hub', href: '/intelligence', icon: Brain, roles: [UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER], badge: 'AI' },
         { label: 'Sales Reports', href: '/reports', icon: BarChart3, roles: [UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER], isNew: true },
-        { label: 'Mobile Money (MoMo)', href: '/mobile-money', icon: Sparkles },
-        { label: 'Online Shop', href: '/online-store', icon: ShoppingCart },
       ]
     },
     {

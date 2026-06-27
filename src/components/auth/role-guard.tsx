@@ -33,7 +33,7 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/pos" replace />;
   }
 
   return <>{children}</>;

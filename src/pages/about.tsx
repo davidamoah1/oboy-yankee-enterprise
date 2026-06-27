@@ -162,7 +162,7 @@ export default function AboutPage() {
               </h2>
               <div className="flex flex-wrap justify-center gap-6">
                  <Button asChild variant="secondary" className="h-16 px-10 rounded-2xl font-black uppercase tracking-widest text-[10px] border-none shadow-2xl">
-                    <Link to="/register">Start Free Trial</Link>
+                    <Link to="/login">Get Started</Link>
                  </Button>
                  <Button asChild variant="outline" className="h-16 px-10 rounded-2xl bg-white/10 hover:bg-white/20 border-white/20 text-white font-black uppercase tracking-widest text-[10px] transition-all">
                     <Link to="/contact">Speak to our Team</Link>

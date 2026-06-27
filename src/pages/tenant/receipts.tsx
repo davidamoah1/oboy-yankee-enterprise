@@ -118,9 +118,9 @@ export default function ReceiptsPage() {
 
       try {
         const { apiClient } = await import('@/lib/api-client');
-        const response = await apiClient.get('/api/transactions?limit=50');
+        const response = await apiClient.get('/api/sales?limit=50');
         const data = response.data?.data || response.data || [];
-        if (data) {
+        if (Array.isArray(data)) {
           setRemoteTxs(data);
         }
       } catch (err) {
@@ -145,14 +145,14 @@ export default function ReceiptsPage() {
       status: "Local Sync Queue",
       isOffline: true
     })),
-    ...remoteTxs.map(tx => ({
-      id: `TX-${tx.id.substring(0, 8).toUpperCase()}`,
+    ...remoteTxs.map((tx: any) => ({
+      id: tx.receiptNumber || `TX-${String(tx.id).substring(0, 8).toUpperCase()}`,
       rawId: tx.id,
       customer: "Walk-in Customer",
-      total: Number(tx.total_amount) || 0,
-      method: tx.payment_method || "Cash",
-      date: new Date(tx.created_at).toISOString().split('T')[0],
-      time: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      total: Number(tx.totalAmount) || 0,
+      method: tx.paymentMethod || "Cash",
+      date: new Date(tx.createdAt).toISOString().split('T')[0],
+      time: new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       cashier: "Active Staff",
       status: "Paid",
       isOffline: false

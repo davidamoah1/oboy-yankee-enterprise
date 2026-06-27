@@ -39,7 +39,7 @@ export default function RegisterPage() {
 
               <div className="space-y-3">
                 <Button 
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/pos')}
                   className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-xs gap-2 transition-all shadow-lg shadow-indigo-600/10"
                 >
                   Enter Dashboard

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { apiClient } from '@/lib/api-client';
 import { offlinePOS } from '@/features/pos/services/offline-pos';
 import { toast } from 'sonner';
 
@@ -13,34 +13,26 @@ export function useOfflineSync() {
 
       for (const tx of pending) {
         try {
-          const { error } = await supabase
-            .from('transactions')
-            .insert({
-              id: tx.id,
-              tenant_id: tx.tenant_id,
-              total_amount: tx.total_amount,
-              payment_method: tx.payment_method,
-              created_at: tx.created_at,
-              status: 'completed'
-            });
-
-          if (!error) {
-            // Also insert items
-            const itemsToInsert = tx.items.map(item => ({
-              transaction_id: tx.id,
-              product_id: item.product.id,
+          const response = await apiClient.post('/api/sales', {
+            totalAmount: tx.total_amount,
+            subtotal: tx.subtotal || tx.total_amount,
+            taxAmount: tx.tax_amount || 0,
+            discountAmount: tx.discount_amount || 0,
+            paymentMethod: tx.payment_method,
+            isCredit: tx.is_credit || false,
+            customerPhone: tx.customer_phone || null,
+            notes: `Offline sync ref: ${tx.id}`,
+            items: tx.items.map((item: any) => ({
+              productId: item.product.id,
               quantity: item.quantity,
-              unit_price: item.product.price,
-              total_price: item.product.price * item.quantity
-            }));
+              unitPrice: item.product.price,
+              discount: 0,
+              totalPrice: item.product.price * item.quantity
+            }))
+          });
 
-            const { error: itemsError } = await supabase
-              .from('transaction_items')
-              .insert(itemsToInsert);
-
-            if (!itemsError) {
-              await offlinePOS.markAsSynced(tx.id);
-            }
+          if (response.data) {
+            await offlinePOS.markAsSynced(tx.id);
           }
         } catch (err) {
           console.error(`Failed to sync transaction ${tx.id}:`, err);

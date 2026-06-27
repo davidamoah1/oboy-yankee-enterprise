@@ -216,7 +216,7 @@ export default function InvoicesPage() {
       .then((response) => {
         setLoading(false);
         const data = response.data?.data || response.data || [];
-        if (data && data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           const mapped: Invoice[] = data.map((inv: any) => ({
             id: inv.id,
             client: inv.client_name,

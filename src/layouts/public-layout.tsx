@@ -71,7 +71,7 @@ export function PublicLayout() {
               className="text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 rounded-xl px-8 h-11 bg-primary border-none hover:translate-y-[-2px] transition-all"
               asChild
             >
-              <Link to="/register">
+              <Link to="/login">
                 Get Started
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
@@ -121,7 +121,7 @@ export function PublicLayout() {
                       className="w-full h-12 text-xs font-black uppercase tracking-widest rounded-xl shadow-xl shadow-primary/10 border-none"
                       asChild
                     >
-                      <Link to="/register" onClick={() => setIsOpen(false)}>Get Started Now</Link>
+                      <Link to="/login" onClick={() => setIsOpen(false)}>Get Started Now</Link>
                     </Button>
                   </div>
                 </SheetContent>

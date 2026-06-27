@@ -2,6 +2,14 @@ const ACCESS_TOKEN_KEY = 'oboy_yankee_access_token';
 const REFRESH_TOKEN_KEY = 'oboy_yankee_refresh_token';
 const USER_CACHE_KEY = 'oboy_yankee_user_cache';
 
+export const isSupabaseConfigured = () => false;
+
+export const supabase = new Proxy({} as any, {
+  get() {
+    throw new Error('Supabase is not configured. This app uses a custom Express backend.');
+  },
+});
+
 export const tokenStorage = {
   getAccessToken(): string | null {
     try {
