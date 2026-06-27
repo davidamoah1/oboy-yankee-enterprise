@@ -1140,8 +1140,8 @@ export function POSTerminal() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-xs font-black uppercase tracking-[0.25em] text-emerald-500">Sale Documented</h3>
-                <p className="text-[9px] font-mono tracking-wider text-slate-400 mt-1 uppercase">Doc-ID: {completedSale.saleId.replace(/-/g, '').substring(0, 16).toUpperCase()}</p>
+                <h3 className="text-xs font-black uppercase tracking-[0.25em] text-emerald-500">Sale Completed</h3>
+                <p className="text-[9px] font-mono tracking-wider text-slate-400 mt-1 uppercase">Receipt #: {completedSale.saleId.replace(/-/g, '').substring(0, 16).toUpperCase()}</p>
               </div>
 
               {/* Core Ledger Receipt Body */}
@@ -1150,27 +1150,25 @@ export function POSTerminal() {
                   <h4 className="font-black text-lg tracking-tight uppercase italic text-slate-100">
                     OBOY YANKEE ENTERPRISE
                   </h4>
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/[0.03] border border-white/[0.05] rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Ledger Verified Terminal</span>
-                  </div>
+                  <p className="text-[9px] text-slate-400 font-bold">Tel: +233 24 555 0122</p>
                   <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1">{new Date(completedSale.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
                 </div>
 
                 {/* Dashed item catalog layout */}
                 <div className="border-t border-b border-dashed border-white/10 py-4 space-y-3.5">
                   <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-500 font-mono">
-                    <span>Particulars</span>
-                    <span>Total (₵)</span>
+                    <span className="flex-1">Item</span>
+                    <span className="w-10 text-center">Qty</span>
+                    <span className="w-16 text-right">U.Cost</span>
+                    <span className="w-16 text-right">Amount</span>
                   </div>
                   
                   {completedSale.items.map((it: any) => (
                     <div key={it.product.id} className="flex justify-between items-start font-mono text-[11px]">
-                      <div className="space-y-0.5">
-                        <span className="font-extrabold text-[#edf2f7] block leading-tight">{it.product.name}</span>
-                        <span className="text-slate-500 text-[9px] block">₵{parseFloat(it.product.price).toFixed(2)} x {it.quantity}</span>
-                      </div>
-                      <span className="font-extrabold text-[#edf2f7] pt-0.5">₵{(parseFloat(it.product.price) * it.quantity).toFixed(2)}</span>
+                      <span className="flex-1 font-extrabold text-[#edf2f7] block leading-tight">{it.product.name}</span>
+                      <span className="w-10 text-center text-slate-400">{it.quantity}</span>
+                      <span className="w-16 text-right text-slate-400">₵{parseFloat(it.product.price).toFixed(2)}</span>
+                      <span className="w-16 text-right font-extrabold text-[#edf2f7]">₵{(parseFloat(it.product.price) * it.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -1194,17 +1192,17 @@ export function POSTerminal() {
                 {/* Dynamic Settlements Details */}
                 <div className="p-3.5 bg-white/[0.02] border border-white/[0.06] rounded-2.5xl flex justify-between items-center">
                   <div>
-                    <span className="text-[8px] font-black uppercase text-slate-500 block">Settle Mechanism</span>
+                    <span className="text-[8px] font-black uppercase text-slate-500 block">Payment Method</span>
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">{completedSale.paymentMethod}</span>
                   </div>
                   <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/10 text-[8px] font-black uppercase py-1 px-2.5 rounded-lg shrink-0">
-                    {completedSale.isOffline ? "Offline Buffer" : "Live Real-Time Sync"}
+                    {completedSale.isOffline ? "Saved Offline" : "Completed"}
                   </Badge>
                 </div>
 
                 {/* Instant Link Sharing Action Row (New Pro Feature) */}
                 <div className="flex items-center justify-between gap-2 p-1.5 bg-white/[0.01] border border-white/5 rounded-2xl shrink-0">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2.5">Digital Archive URL</p>
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2.5">Receipt Link</p>
                   <Button 
                     variant="outline"
                     onClick={() => {

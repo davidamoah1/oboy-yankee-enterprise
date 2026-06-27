@@ -229,10 +229,6 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
                 </div>
                 <div className="pt-8 flex flex-col items-center gap-3 opacity-40">
                    <div className="flex items-center gap-6 text-[9px] font-black uppercase tracking-widest italic">
-                      <span>Location: Accra Central</span>
-                      <div className="h-1 w-1 rounded-full bg-muted-foreground" />
-                      <span>Shop ID: GH-992384-X</span>
-                      <div className="h-1 w-1 rounded-full bg-muted-foreground" />
                       <span>Phone: +233 24 555 0122</span>
                    </div>
                 </div>
@@ -242,9 +238,10 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
               <div className="space-y-12">
                 <div className="space-y-6">
                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-30 pb-4 border-b border-white/5">
-                      <div className="flex-1">Purchased Items</div>
+                      <div className="flex-1">Item</div>
                       <div className="w-16 text-center">Qty</div>
-                      <div className="w-32 text-right">Price</div>
+                      <div className="w-24 text-right">U.Cost</div>
+                      <div className="w-24 text-right">Amount</div>
                    </div>
                    
                    <div className="space-y-8">
@@ -252,10 +249,10 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
                         <div key={i} className="flex items-center group">
                           <div className="flex-1 space-y-1">
                              <div className="font-black italic text-lg tracking-tight group-hover:text-primary transition-colors">{item.name}</div>
-                             <div className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">{item.id || "GEN-01"}</div>
                           </div>
                           <div className="w-16 text-center text-xs font-black italic opacity-40 uppercase tracking-widest">x{item.qty}</div>
-                          <div className="w-32 text-right font-black italic text-lg">₵ {item.price.toFixed(2)}</div>
+                          <div className="w-24 text-right text-xs font-bold italic opacity-60">₵ {(item.price / item.qty).toFixed(2)}</div>
+                          <div className="w-24 text-right font-black italic text-lg">₵ {item.price.toFixed(2)}</div>
                         </div>
                       ))}
                    </div>

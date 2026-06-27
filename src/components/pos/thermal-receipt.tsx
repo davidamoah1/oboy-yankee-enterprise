@@ -60,8 +60,8 @@ export function ThermalReceipt({ open, onClose, receiptData }: ThermalReceiptPro
             .divider { border-top: 1px dashed #000; margin: 4px 0; }
             .item-row { display: flex; justify-content: space-between; margin: 2px 0; }
             .item-name { flex: 1; }
-            .item-qty { width: 30px; text-align: center; }
-            .item-price { width: 60px; text-align: right; }
+            .item-qty { width: 25px; text-align: center; }
+            .item-price { width: 50px; text-align: right; }
             .total-row { display: flex; justify-content: space-between; margin: 1px 0; }
             .total-final { font-size: 14px; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 4px 0; }
             @media print { body { width: auto; } }
@@ -116,10 +116,20 @@ export function ThermalReceipt({ open, onClose, receiptData }: ThermalReceiptPro
 
           <div className="divider" />
 
+          <div className="item-row bold small">
+            <span className="item-name">Item</span>
+            <span className="item-qty">Qty</span>
+            <span className="item-price">U.Cost</span>
+            <span className="item-price">Amount</span>
+          </div>
+
+          <div className="divider" />
+
           {receiptData.items.map((item, i) => (
             <div key={i} className="item-row">
               <span className="item-name">{item.name}</span>
-              <span className="item-qty">x{item.quantity}</span>
+              <span className="item-qty">{item.quantity}</span>
+              <span className="item-price">{fmt(item.unitPrice)}</span>
               <span className="item-price">{fmt(item.totalPrice)}</span>
             </div>
           ))}
