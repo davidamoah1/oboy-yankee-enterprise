@@ -10,7 +10,8 @@ import {
   ShoppingCart,
   Package,
   CreditCard,
-  Receipt
+  Receipt,
+  Lock
 } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
 import { cn } from "@/lib/utils";
@@ -176,12 +177,20 @@ export function TenantLayout() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-border" />
-                    <Link to="/settings">
+                    <Link to="/change-password">
                       <DropdownMenuItem className="p-4 rounded-xl cursor-pointer font-bold gap-3 focus:bg-indigo-500 focus:text-white">
-                         <span className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-foreground"><Settings className="h-4 w-4" /></span>
-                         Settings
+                         <span className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-foreground"><Lock className="h-4 w-4" /></span>
+                         Change Password
                       </DropdownMenuItem>
                     </Link>
+                    {(user?.role === 'super_admin' || user?.role === 'company_admin') && (
+                      <Link to="/settings">
+                        <DropdownMenuItem className="p-4 rounded-xl cursor-pointer font-bold gap-3 focus:bg-indigo-500 focus:text-white">
+                           <span className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-foreground"><Settings className="h-4 w-4" /></span>
+                           Settings
+                        </DropdownMenuItem>
+                      </Link>
+                    )}
                     <DropdownMenuSeparator className="bg-border" />
                     <DropdownMenuItem className="p-4 rounded-xl cursor-pointer text-red-500 font-bold gap-3 focus:bg-red-500 focus:text-white" onClick={signOut}>
                        <span className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center"><LogOut className="h-4 w-4" /></span>

@@ -26,6 +26,7 @@ import CustomersPage from "./pages/tenant/customers";
 import ReportsPage from "./pages/tenant/reports";
 import IntelligencePage from "./pages/tenant/intelligence";
 import SettingsPage from "./pages/tenant/settings";
+import ChangePasswordPage from "./pages/tenant/change-password";
 import SupportPage from "./pages/tenant/support";
 import SalesHistoryPage from "./pages/tenant/sales";
 import StaffPage from "./pages/tenant/staff";
@@ -116,6 +117,7 @@ export default function App() {
                 <Route path="/reports" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER]}><ReportsPage /></ProtectedRoute>} />
                 <Route path="/intelligence" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER]}><IntelligencePage /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN]}><SettingsPage /></ProtectedRoute>} />
+                <Route path="/change-password" element={<ChangePasswordPage />} />
                 <Route path="/z-reports" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER]}><ZReportsPage /></ProtectedRoute>} />
                 <Route path="/airtime" element={<AirtimePage />} />
                 <Route path="/bill-payments" element={<BillPaymentsPage />} />
