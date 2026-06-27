@@ -61,6 +61,12 @@ export default function SettingsPage() {
   const [smsSending, setSmsSending] = useState(false);
   const [smsSaving, setSmsSaving] = useState(false);
 
+  // Password states
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
   useEffect(() => {
     // Fetch SMS settings
     apiClient.get('/api/sms/settings').then(res => {
@@ -111,6 +117,33 @@ export default function SettingsPage() {
       toast.error(err.response?.data?.error || err.message || "Failed to update settings");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Please fill in all password fields.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await apiClient.put('/api/auth/password', { currentPassword, newPassword });
+      toast.success("Password changed successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to change password.");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -515,10 +548,55 @@ export default function SettingsPage() {
                     </div>
                  </div>
 
-                 <div className="pt-10 border-t border-white/5">
-                    <Button variant="outline" className="h-14 font-black uppercase tracking-widest text-[10px] border-2 px-10 rounded-2xl gap-3">
-                       <Lock className="h-4 w-4" /> Change Password
-                    </Button>
+                 <div className="pt-10 border-t border-white/5 space-y-6">
+                    <div className="space-y-1">
+                       <h4 className="text-lg font-black italic uppercase leading-none tracking-tighter flex items-center gap-2">
+                          <Lock className="h-4 w-4" /> Change Password
+                       </h4>
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic leading-none">Enter your current password and a new one to update it.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Current Password</Label>
+                          <Input
+                             type="password"
+                             value={currentPassword}
+                             onChange={e => setCurrentPassword(e.target.value)}
+                             placeholder="Enter your current password"
+                             className="h-14 bg-muted/40 border-none rounded-2xl px-6 font-bold"
+                          />
+                       </div>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">New Password</Label>
+                             <Input
+                                type="password"
+                                value={newPassword}
+                                onChange={e => setNewPassword(e.target.value)}
+                                placeholder="At least 8 characters"
+                                className="h-14 bg-muted/40 border-none rounded-2xl px-6 font-bold"
+                             />
+                          </div>
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Confirm New Password</Label>
+                             <Input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={e => setConfirmPassword(e.target.value)}
+                                placeholder="Re-enter new password"
+                                className="h-14 bg-muted/40 border-none rounded-2xl px-6 font-bold"
+                             />
+                          </div>
+                       </div>
+                       <Button
+                          onClick={handleChangePassword}
+                          disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+                          className="h-14 font-black uppercase tracking-widest text-[10px] px-10 rounded-2xl gap-3 bg-emerald-600 hover:bg-emerald-500 text-white border-none"
+                       >
+                          {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                          {changingPassword ? "Changing..." : "Change Password"}
+                       </Button>
+                    </div>
                  </div>
               </CardContent>
            </Card>
