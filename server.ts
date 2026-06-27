@@ -1279,41 +1279,57 @@ async function sendDailySummarySMS(zReport: any, companyId: string): Promise<voi
 // SALES ROUTES
 // ─────────────────────────────────────────────
 app.get("/api/sales", requireAuth, async (req: any, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { role: true } });
-    const isAdmin = user?.role === "company_admin" || user?.role === "super_admin" || user?.role === "manager" || user?.role === "accountant";
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { role: true } });
+      const isAdmin = user?.role === "company_admin" || user?.role === "super_admin" || user?.role === "manager" || user?.role === "accountant";
 
-    const where: any = { companyId: req.user.companyId };
-    if (!isAdmin) {
-      where.userId = req.user.userId;
+      const where: any = { companyId: req.user.companyId };
+      if (!isAdmin) {
+        where.userId = req.user.userId;
+      }
+
+      const sales = await prisma.sale.findMany({
+        where,
+        include: { items: { include: { product: true } }, customer: true, user: true },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+      res.json(sales);
+      return;
+    } catch (error: any) {
+      logger.error(`[SALES GET ERROR - Attempt ${attempt}/${maxRetries}]`, { error: error.message });
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+      } else {
+        res.status(500).json({ error: "Failed to fetch sales. The database may be waking up, please try again." });
+      }
     }
-
-    const sales = await prisma.sale.findMany({
-      where,
-      include: { items: { include: { product: true } }, customer: true, user: true },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
-    res.json(sales);
-  } catch (error: any) {
-    logger.error("[SALES GET ERROR]", { error: error.message });
-    res.status(500).json({ error: "Failed to fetch sales." });
   }
 });
 
 app.get("/api/sales/:id", requireAuth, async (req: any, res) => {
-  try {
-    const sale = await prisma.sale.findUnique({
-      where: { id: req.params.id },
-      include: { items: { include: { product: true } }, customer: true, user: true },
-    });
-    if (!sale || sale.companyId !== req.user.companyId) {
-      return res.status(404).json({ error: "Sale not found." });
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const sale = await prisma.sale.findUnique({
+        where: { id: req.params.id },
+        include: { items: { include: { product: true } }, customer: true, user: true },
+      });
+      if (!sale || sale.companyId !== req.user.companyId) {
+        return res.status(404).json({ error: "Sale not found." });
+      }
+      res.json(sale);
+      return;
+    } catch (error: any) {
+      logger.error(`[SALE DETAIL ERROR - Attempt ${attempt}/${maxRetries}]`, { error: error.message });
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+      } else {
+        res.status(500).json({ error: "Failed to fetch sale. The database may be waking up, please try again." });
+      }
     }
-    res.json(sale);
-  } catch (error: any) {
-    logger.error("[SALE DETAIL ERROR]", { error: error.message });
-    res.status(500).json({ error: "Failed to fetch sale." });
   }
 });
 
