@@ -1658,7 +1658,6 @@ app.get("/api/credit-payments", requireAuth, async (req: any, res) => {
   try {
     const payments = await prisma.creditPayment.findMany({
       where: { companyId: req.user.companyId },
-      include: { sale: true },
       orderBy: { createdAt: "desc" },
     });
     res.json(payments);
