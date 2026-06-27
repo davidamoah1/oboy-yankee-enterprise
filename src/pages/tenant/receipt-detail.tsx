@@ -65,59 +65,54 @@ export default function ReceiptDetailPage() {
          let dbReceipt: LoadedReceipt | null = null;
 
          // 1. Try API
-         try {
+        try {
            const { apiClient } = await import("@/lib/api-client");
-           await Promise.race([
-             (async () => {
-               const response = await apiClient.get(`/api/sales/${receiptId}`);
-               const tx = response.data?.data || response.data;
+           const response = await apiClient.get(`/api/sales/${receiptId}`);
+           const tx = response.data?.data || response.data;
 
-               if (tx) {
-                 let fetchedItems: ReceiptItem[] = [];
-                 if (tx.items && tx.items.length > 0) {
-                   fetchedItems = tx.items.map((it: any) => ({
-                     name: it.product?.name || it.name || "Retail Item",
-                     qty: it.quantity,
-                     price: Number(it.unitPrice) || 0,
-                     total: Number(it.totalPrice) || 0,
-                     id: it.product?.sku ? `ITM-${it.product.sku}` : undefined
-                   }));
-                 } else {
-                   fetchedItems = [{
-                     name: "General Store Items",
-                     qty: 1,
-                     price: Number(tx.totalAmount) || 0,
-                     total: Number(tx.totalAmount) || 0,
-                     id: "GEN-01"
-                   }];
-                 }
+           if (tx) {
+             let fetchedItems: ReceiptItem[] = [];
+             if (tx.items && tx.items.length > 0) {
+               fetchedItems = tx.items.map((it: any) => ({
+                 name: it.product?.name || it.name || "Retail Item",
+                 qty: it.quantity,
+                 price: Number(it.unitPrice) || 0,
+                 total: Number(it.totalPrice) || 0,
+                 id: it.product?.sku ? `ITM-${it.product.sku}` : undefined
+               }));
+             } else {
+               fetchedItems = [{
+                 name: "General Store Items",
+                 qty: 1,
+                 price: Number(tx.totalAmount) || 0,
+                 total: Number(tx.totalAmount) || 0,
+                 id: "GEN-01"
+               }];
+             }
 
-                 const shopName = "OBOY YANKEE ENTERPRISE";
+             const shopName = "OBOY YANKEE ENTERPRISE";
 
-                 dbReceipt = {
-                   id: tx.id,
-                   shopName,
-                   customerName: tx.customer?.name || "Walk-in Customer",
-                   cashierName: tx.user?.fullName || "Store Clerk",
-                   dateString: new Date(tx.createdAt).toLocaleString(),
-                   items: fetchedItems,
-                   subtotal: Number(tx.subtotal) || Number(tx.totalAmount),
-                   tax: Number(tx.taxAmount) || 0,
-                   nhilAmount: Number(tx.nhilAmount) || 0,
-                   getfundAmount: Number(tx.getfundAmount) || 0,
-                   vatAmount: Number(tx.vatAmount) || 0,
-                   covidHrlAmount: Number(tx.covidHrlAmount) || 0,
-                   discount: Number(tx.discountAmount) || 0,
-                   total: Number(tx.totalAmount) || 0,
-                   paymentMethod: tx.paymentMethod || "Mobile Money",
-                   isCredit: tx.isCredit || false,
-                   receiptNumber: tx.receiptNumber || tx.id,
-                   blockchainId: `NEXA-REF-${tx.id.substring(0, 8).toUpperCase()}`,
-                 };
-               }
-             })(),
-             new Promise<void>((_, reject) => setTimeout(() => reject(new Error("API loading timed out")), 15000))
-           ]);
+             dbReceipt = {
+               id: tx.id,
+               shopName,
+               customerName: tx.customer?.name || "Walk-in Customer",
+               cashierName: tx.user?.fullName || "Store Clerk",
+               dateString: new Date(tx.createdAt).toLocaleString(),
+               items: fetchedItems,
+               subtotal: Number(tx.subtotal) || Number(tx.totalAmount),
+               tax: Number(tx.taxAmount) || 0,
+               nhilAmount: Number(tx.nhilAmount) || 0,
+               getfundAmount: Number(tx.getfundAmount) || 0,
+               vatAmount: Number(tx.vatAmount) || 0,
+               covidHrlAmount: Number(tx.covidHrlAmount) || 0,
+               discount: Number(tx.discountAmount) || 0,
+               total: Number(tx.totalAmount) || 0,
+               paymentMethod: tx.paymentMethod || "Mobile Money",
+               isCredit: tx.isCredit || false,
+               receiptNumber: tx.receiptNumber || tx.id,
+               blockchainId: `NEXA-REF-${tx.id.substring(0, 8).toUpperCase()}`,
+             };
+           }
          } catch (err) {
            console.warn("Could not query API for receipt details: ", err);
          }
