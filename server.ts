@@ -727,8 +727,9 @@ app.post("/api/admin/invite-staff", requireAuth, requirePermission("manage_users
 
     res.json({
       success: true,
-      message: `Access granted to ${email}. Credentials dispatched via encrypted channel.`,
+      message: `Staff member added successfully.`,
       staffId: newUser.id,
+      tempPassword,
     });
   } catch (error: any) {
     logger.error('[STAFF INVITE ERROR]', { error: error.message });
@@ -785,8 +786,9 @@ app.post("/api/users/invite", requireAuth, requirePermission("manage_users"), ad
 
     res.json({
       success: true,
-      message: `Access granted to ${email}. Credentials dispatched via encrypted channel.`,
+      message: `Staff member added successfully.`,
       userId: newUser.id,
+      tempPassword,
       staffId: newUser.id,
     });
   } catch (error: any) {

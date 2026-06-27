@@ -93,6 +93,7 @@ export default function StaffPage() {
   const [isInviting, setIsInviting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formStep, setFormStep] = useState(1);
+  const [credentials, setCredentials] = useState<{ email: string; password: string; name: string } | null>(null);
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchingLogs, setFetchingLogs] = useState(true);
@@ -286,7 +287,14 @@ export default function StaffPage() {
         });
         if (response.data && (response.data.success || response.data.userId)) {
           successOnServer = true;
-          serverMessage = response.data.message || "Invitation successfully dispatched.";
+          serverMessage = response.data.message || "Staff member added successfully.";
+          if (response.data.tempPassword) {
+            setCredentials({
+              email: inviteEmail,
+              password: response.data.tempPassword,
+              name: inviteName,
+            });
+          }
         }
       } catch (serverErr: any) {
         console.warn("Backend auth registration timed out or errored. Proceeding with seamless workspace fallback registration:", serverErr);
@@ -627,7 +635,80 @@ export default function StaffPage() {
         </Dialog>
       </div>
 
-      {/* Analytics Cards */}
+      {/* Credentials Display Dialog */}
+      <Dialog open={!!credentials} onOpenChange={(open) => { if (!open) setCredentials(null); }}>
+        <DialogContent className="sm:max-w-md bg-card border-2 border-emerald-500/30 rounded-[32px] p-0 shadow-3xl text-foreground">
+          <div className="w-full h-1 bg-gradient-to-r from-emerald-500 via-primary to-emerald-500" />
+          <div className="p-6 sm:p-7 space-y-5">
+            <DialogHeader className="text-left flex flex-row items-center gap-4 space-y-0">
+              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
+                <Check className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle className="text-lg font-black tracking-tight text-foreground uppercase">
+                  Staff Added Successfully
+                </DialogTitle>
+                <DialogDescription className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                  Write down these login details and give them to {credentials?.name}
+                </DialogDescription>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border/50 space-y-3">
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Staff Name</span>
+                  <p className="text-sm font-bold text-foreground">{credentials?.name}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Login Email</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-foreground break-all">{credentials?.email}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 text-[9px] font-black uppercase tracking-wider shrink-0 cursor-pointer"
+                      onClick={() => { navigator.clipboard.writeText(credentials?.email || ''); toast.success('Email copied!'); }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Temporary Password</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-black text-emerald-500 font-mono tracking-wider">{credentials?.password}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 text-[9px] font-black uppercase tracking-wider shrink-0 cursor-pointer"
+                      onClick={() => { navigator.clipboard.writeText(credentials?.password || ''); toast.success('Password copied!'); }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold leading-relaxed">
+                  ⚠️ Important: Tell the staff member to log in and change their password as soon as possible.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                onClick={() => setCredentials(null)}
+                className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-wider text-xs shadow-md shadow-emerald-500/10 cursor-pointer transition-all"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
          {statsList.map((stat, i) => (
            <Card key={i} className="border-none bg-card/50 backdrop-blur-sm shadow-xl rounded-3xl overflow-hidden relative group">
