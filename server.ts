@@ -276,7 +276,7 @@ const paymentLimiter = rateLimit({
 const aiLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 20, // Max 20 dynamic queries to mitigate key cost/throttling
-  message: reqLimiterMessage("Nexa neural core limits exceeded. Please pause before launching more queries.")
+  message: reqLimiterMessage("AI query limit exceeded. Please pause before launching more queries.")
 });
 
 const adminLimiter = rateLimit({
@@ -428,8 +428,13 @@ const resetLimiter = rateLimit({
 });
 
 // API Routes
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", environment: process.env.NODE_ENV, timestamp: new Date() });
+app.get("/api/health", async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: "ok", database: "connected", environment: process.env.NODE_ENV, timestamp: new Date() });
+  } catch (err: any) {
+    res.status(200).json({ status: "degraded", database: "reconnecting", environment: process.env.NODE_ENV, timestamp: new Date() });
+  }
 });
 
 /**
