@@ -24,11 +24,16 @@ export function LoginForm() {
 
     try {
       const profile = await signIn(email, password);
-      toast.success('Successfully logged in!');
+      toast.success('Welcome back!');
       const dashboardRoles = [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER];
       navigate(dashboardRoles.includes(profile.role) ? '/dashboard' : '/pos');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || error.message || 'Failed to login');
+      const msg = error.response?.data?.error || error.message || 'Failed to login';
+      if (msg.includes('starting up') || msg.includes('timeout') || msg.includes('network') || error.code === 'ERR_NETWORK') {
+        toast.error('Server is waking up', { description: 'The server is starting up. Please try again in a few seconds.' });
+      } else {
+        toast.error('Login failed', { description: msg });
+      }
     } finally {
       setLoading(false);
     }

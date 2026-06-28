@@ -35,7 +35,7 @@ function isConnectionError(error: any): boolean {
 // Global retry wrapper - automatically retries any query that fails due to
 // Neon serverless database cold start / connection timeouts
 async function withRetry<T>(operation: () => Promise<T>, context: string): Promise<T> {
-  const maxRetries = 3;
+  const maxRetries = 5;
   let lastError: any;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -48,7 +48,7 @@ async function withRetry<T>(operation: () => Promise<T>, context: string): Promi
         throw error;
       }
 
-      const delay = attempt * 2000; // 2s, 4s, 6s
+      const delay = attempt * 2000; // 2s, 4s, 6s, 8s, 10s
       console.warn(`[PRISMA RETRY] Attempt ${attempt}/${maxRetries} failed for ${context}: ${error.message}. Retrying in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -60,10 +60,8 @@ async function withRetry<T>(operation: () => Promise<T>, context: string): Promi
 // Use $extends (Prisma 6.x compatible) to wrap all queries with retry logic
 const prisma = basePrisma.$extends({
   query: {
-    $allOperations: {
-      async $allOperations({ model, operation, args, query }) {
-        return withRetry(() => query(args), `${model}.${operation}`);
-      },
+    $allOperations({ model, operation, args, query }) {
+      return withRetry(() => query(args), `${model}.${operation}`);
     },
   },
 });

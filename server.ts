@@ -463,65 +463,83 @@ const authLimiter = rateLimit({
 
 // Login
 app.post("/api/auth/login", authLimiter, async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-      include: {
-        company: true,
-        customRole: { include: { rolePerms: { include: { permission: true } } } },
-        userPerms: { include: { permission: true } },
-      },
-    });
-
-    if (!user || user.deletedAt) {
-      return res.status(401).json({ error: "Invalid email or password." });
-    }
-
-    if (user.status === "suspended") {
-      return res.status(403).json({ error: "Your account has been suspended. Contact your administrator." });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid email or password." });
-    }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
-
-    const accessToken = generateAccessToken(user.id, user.role, user.companyId);
-    const refreshToken = generateRefreshToken(user.id);
-
-    const permissions = collectUserPermissions(user);
-
-    res.json({
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        avatarUrl: user.avatarUrl,
-        phone: user.phone,
-        role: user.role,
-        status: user.status,
-        companyId: user.companyId,
-        company: user.company,
-        permissions,
-      },
-    });
-  } catch (error: any) {
-    logger.error("[AUTH LOGIN ERROR]", { error: error.message });
-    res.status(500).json({ error: "Login failed. Please try again." });
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required." });
   }
+
+  // Retry login DB queries for Neon cold start
+  const maxLoginRetries = 3;
+  let lastError: any;
+
+  for (let attempt = 1; attempt <= maxLoginRetries; attempt++) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+        include: {
+          company: true,
+          customRole: { include: { rolePerms: { include: { permission: true } } } },
+          userPerms: { include: { permission: true } },
+        },
+      });
+
+      if (!user || user.deletedAt) {
+        return res.status(401).json({ error: "Invalid email or password." });
+      }
+
+      if (user.status === "suspended") {
+        return res.status(403).json({ error: "Your account has been suspended. Contact your administrator." });
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Invalid email or password." });
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      const accessToken = generateAccessToken(user.id, user.role, user.companyId);
+      const refreshToken = generateRefreshToken(user.id);
+
+      const permissions = collectUserPermissions(user);
+
+      return res.json({
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          phone: user.phone,
+          role: user.role,
+          status: user.status,
+          companyId: user.companyId,
+          company: user.company,
+          permissions,
+        },
+      });
+    } catch (error: any) {
+      lastError = error;
+      const isDbError = error.code?.startsWith('P1') || error.message?.includes('Connection') || error.message?.includes('timeout') || error.message?.includes('Can\'t reach');
+      
+      if (isDbError && attempt < maxLoginRetries) {
+        logger.warn(`[AUTH LOGIN RETRY] Attempt ${attempt}/${maxLoginRetries} failed: ${error.message}. Retrying...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        continue;
+      }
+      
+      logger.error("[AUTH LOGIN ERROR]", { error: error.message });
+      return res.status(500).json({ error: "The server is starting up. Please try again in a moment." });
+    }
+  }
+
+  logger.error("[AUTH LOGIN ERROR] All retries exhausted:", { error: lastError?.message });
+  return res.status(500).json({ error: "The server is starting up. Please try again in a moment." });
 });
 
 // Register — only for initial setup (first user becomes company_admin)

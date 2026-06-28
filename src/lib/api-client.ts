@@ -40,6 +40,9 @@ export class APIClient {
         if (config.url?.startsWith('/api/ai/')) {
           config.timeout = 90000;
         }
+        if (config.url?.startsWith('/api/auth/')) {
+          config.timeout = 60000;
+        }
 
         const token = tokenStorage.getAccessToken();
         if (token && config.headers) {
@@ -88,7 +91,6 @@ export class APIClient {
 
         // Only retry on server errors (500+), network errors, or no response at all
         // Don't retry on 400/401/403/404 — those are legitimate client errors
-        const isAuthEndpoint = originalRequest?.url?.startsWith('/api/auth/');
         const isServerError =
           error.response?.status >= 500 ||
           error.code === 'ECONNABORTED' ||
@@ -96,16 +98,16 @@ export class APIClient {
           error.code === 'ETIMEDOUT' ||
           (!error.response && !error.status);
 
-        const shouldRetry = originalRequest && isServerError && !isAuthEndpoint;
+        const shouldRetry = originalRequest && isServerError;
 
         if (shouldRetry) {
           originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
-          const maxRetries = 3;
+          const maxRetries = 4;
           const retryDelay = 2000;
 
           if (originalRequest._retryCount <= maxRetries) {
             if (originalRequest._retryCount === 1) {
-              toast.loading('Just a moment...', { id: 'retry-loading', duration: Infinity });
+              toast.loading('Connecting to server, please wait...', { id: 'retry-loading', duration: Infinity });
             }
             await new Promise((resolve) => setTimeout(resolve, retryDelay * originalRequest._retryCount));
             return this.instance(originalRequest);
