@@ -23,7 +23,8 @@ import {
   WifiOff,
   RefreshCw,
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
+  Receipt
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -38,15 +39,11 @@ import {
   Cell 
 } from 'recharts';
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "motion/react";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth-context";
-import { NexaIntelligenceHub } from "@/components/intelligence/nexa-intelligence-hub";
-import { NexaAssistant } from "@/components/intelligence/nexa-assistant";
 import { offlinePOS } from "@/features/pos/services/offline-pos";
 
 const defaultSalesData = [
@@ -60,7 +57,6 @@ const defaultSalesData = [
 ];
 
 export default function TenantDashboard() {
-  const { company } = useAuth();
   const navigate = useNavigate();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
@@ -86,146 +82,6 @@ export default function TenantDashboard() {
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [paymentBreakdown, setPaymentBreakdown] = useState({ cash: 0, momo: 0, card: 0, credit: 0 });
   const [loading, setLoading] = useState(true);
-
-  const selectedTypeRaw = company?.settings?.category || "Retail";
-  
-  // Normalize key
-  let businessType = selectedTypeRaw;
-  if (selectedTypeRaw === "Fashion Shop") businessType = "Fashion Store";
-  if (selectedTypeRaw === "Cosmetics Shop") businessType = "Cosmetics Store";
-  if (selectedTypeRaw === "Wholesale Shop" || selectedTypeRaw === "Wholesale") businessType = "Wholesale Business";
-
-  // Specialized Workflow definition for visual guidance
-  const businessWorkflows: Record<string, {
-    title: string;
-    desc: string;
-    steps: { label: string; desc: string; href: string; actionText: string }[];
-  }> = {
-    "Provision Shop": {
-      title: "Provision Shop Smart Workflow",
-      desc: "Fast counter sales, quick debtor credit books, and MoMo collections.",
-      steps: [
-        { label: "Receive Stock", desc: "Update provisions in inventory", href: `/inventory`, actionText: "Add Stock" },
-        { label: "Fast Checkout", desc: "Open the cashier counters", href: `/pos`, actionText: "Sell Now" },
-        { label: "Collection Scan", desc: "Process payments via MTN, Telecel", href: `/mobile-money`, actionText: "Run MoMo" },
-        { label: "Debtor Credit Book", desc: "Log customer micro debts & credits", href: `/customers`, actionText: "Credit Log" },
-        { label: "Daily Balance Sheets", desc: "Extract current daily balances", href: `/reports`, actionText: "Check Balance" },
-      ]
-    },
-    "Mini Mart": {
-      title: "Mini Mart Inventory Speed Workflow",
-      desc: "Optimized for fast moving consumer goods, critical barcode checkout, and instant stock level checks.",
-      steps: [
-        { label: "Receive FMCG Packets", desc: "Populate shelves and log inventory", href: `/inventory`, actionText: "Stock FMCG" },
-        { label: "Smart Scan Checkout", desc: "Fast-register scan mode enabled", href: `/pos`, actionText: "Scan POS" },
-        { label: "Instantly Settle Bills", desc: "Record cash and MoMo references", href: `/pos`, actionText: "Cash Out" },
-        { label: "Review Daily Margins", desc: "Monitor stock turn ratios and profits", href: `/reports`, actionText: "View Profit" }
-      ]
-    },
-    "Supermarket": {
-      title: "Supermarket Bulk Operations Workflow",
-      desc: "Multi-register management, high-volume inventory ingress, and real-time reconciliation logs.",
-      steps: [
-        { label: "Mass Cargo Ingress", desc: "Perform bulk imports & configure shelves", href: `/inventory`, actionText: "Bulk Stock" },
-        { label: "Counter Multi-Registers", desc: "Dispatch cashiers and launch dynamic POS", href: `/pos`, actionText: "Consoles" },
-        { label: "Reconciliation Ledger", desc: "Inspect pooled cashier registers & flows", href: `/accounting`, actionText: "Audit" },
-        { label: "Smart Restock Alerts", desc: "Forecast low-stock triggers by trend", href: `/reports`, actionText: "Forecast" }
-      ]
-    },
-    "Pharmacy": {
-      title: "SME Pharmacy Dispensing Workflow",
-      desc: "Track medicine expiration dates, batches, and stock threshold alarms.",
-      steps: [
-        { label: "Receive Medicines", desc: "Update batch parameters & expiries", href: `/inventory`, actionText: "Log Batch" },
-        { label: "Dispensing POS", desc: "Search drug terms in checkout", href: `/pos`, actionText: "Dispense POS" },
-        { label: "MoMo Clearing", desc: "Verify mobile transfer receipts", href: `/mobile-money`, actionText: "Clear MoMo" },
-        { label: "Supplier Restocks", desc: "Re-order critical empty groups", href: `/suppliers`, actionText: "Restock Out" },
-      ]
-    },
-    "Restaurant": {
-      title: "Quick-Serve Restaurant Food Workflow",
-      desc: "Direct table dispatcher, kitchen feed tickets, and checkout bill splitters.",
-      steps: [
-        { label: "Tables & Seating", desc: "View tables or table seating stats", href: `/customers`, actionText: "Tables" },
-        { label: "Take Food Order", desc: "Trigger pos layout kitchen tickets", href: `/pos`, actionText: "Take Order" },
-        { label: "Split Settlement", desc: "Separate check amounts in register", href: `/pos`, actionText: "Checkout" },
-        { label: "Digital Receipts", desc: "Share checkout receipt onto WhatsApp", href: `/receipts`, actionText: "Receipts" },
-      ]
-    },
-    "Fashion Store": {
-      title: "Boutique & Fashion Apparel Workflow",
-      desc: "Sizing variants, style logs, customer loyalty cards, and catalog scans.",
-      steps: [
-        { label: "Catalogs & Sizing", desc: "Input style size/color details", href: `/inventory`, actionText: "Sizing Variants" },
-        { label: "Visual Register", desc: "Sell clothing with fast picture menus", href: `/pos`, actionText: "POS Grid" },
-        { label: "Customer Loyalty", desc: "Reward repeat buyers with discounts", href: `/customers`, actionText: "Loyalty Tier" },
-        { label: "Apparel Analytics", desc: "Graph top design sales this week", href: `/reports`, actionText: "Hot Styles" },
-      ]
-    },
-    "Cosmetics Store": {
-      title: "Beauty & Cosmetics Specialist Workflow",
-      desc: "Manage beauty brand segments, batch health diagnostics, and client preference records.",
-      steps: [
-        { label: "Serums & Brands Ingress", desc: "Group items by medical and trend segment", href: `/inventory`, actionText: "Log Brands" },
-        { label: "Boutique Registers", desc: "Check out with targeted beauty details", href: `/pos`, actionText: "Boutique POS" },
-        { label: "Skin Profile Registry", desc: "Save client contact & previous brand orders", href: `/customers`, actionText: "Loyalty" },
-        { label: "Brand Turn Ratios", desc: "Generate report on trend-setting items", href: `/reports`, actionText: "Growth" }
-      ]
-    },
-    "Electronics Shop": {
-      title: "Smart Electronics Diagnostics Workflow",
-      desc: "Register critical Serial/IMEI tags, issue warranty cards, and ledger dynamic installment plans.",
-      steps: [
-        { label: "Register Serial Numbers", desc: "Define tracking identifiers & specs", href: `/inventory`, actionText: "Specs Stock" },
-        { label: "Warranty Checkout", desc: "Trigger invoice receipts detailing terms", href: `/pos`, actionText: "Invoice Sell" },
-        { label: "Amortize Payments", desc: "Log micro installment balances safely", href: `/customers`, actionText: "Credit Ledger" },
-        { label: "Defects Check", desc: "Manage supplier returns protocols", href: `/suppliers`, actionText: "Supplier Ledger" }
-      ]
-    },
-    "Hardware Store": {
-      title: "Industrial Hardware & Building Supply Workflow",
-      desc: "Manage loose bulk commodities (cement bags, iron rods), builder tiers, and shipment details.",
-      steps: [
-        { label: "Log Bulky Commodity", desc: "Register loose pallet lots & heavy specs", href: `/inventory`, actionText: "Log Bulky" },
-        { label: "High Volume Despatch", desc: "Perform bulk invoicing & checkout", href: `/pos`, actionText: "Despatch POS" },
-        { label: "Invoicing Batches", desc: "Track partial payments & site dispatch logs", href: `/invoices`, actionText: "Invoice Book" },
-        { label: "Contractor Settle", desc: "Collect site builder credits & debts", href: `/customers`, actionText: "Check Ledger" }
-      ]
-    },
-    "Salon": {
-      title: "Salons & Spa Service Dispatch Workflow",
-      desc: "Track stylist commission targets, services packages selection, and checkout tipping.",
-      steps: [
-        { label: "Treatments & Services", desc: "Input treatment slots and stylist pricing", href: `/inventory`, actionText: "Stock Services" },
-        { label: "Stylist Selection Registers", desc: "Trigger services checkout with tip allocations", href: `/pos`, actionText: "Stylist POS" },
-        { label: "MoMo Tipping clearing", desc: "Verify mobile transfer and cash pools", href: `/mobile-money`, actionText: "Momo Clearing" },
-        { label: "Stylist Commission Book", desc: "Generate reports on service performance", href: `/payroll`, actionText: "Commissions" }
-      ]
-    },
-    "Wholesale Business": {
-      title: "High Volume Wholesale Workflow",
-      desc: "Manage client tiers, palettes, payment installments, and shipments.",
-      steps: [
-        { label: "Bulk Stock", desc: "Register large pallets and crates", href: `/inventory`, actionText: "Bulk Inventory" },
-        { label: "Dynamic Invoicing", desc: "Create batch invoice sheets", href: `/invoices`, actionText: "Bill Invoice" },
-        { label: "Partial Payments", desc: "Accept upfront deposits & set terms", href: `/customers`, actionText: "Debt Book" },
-        { label: "Supplier Ledger", desc: "Order restocking from wholesalers", href: `/suppliers`, actionText: "Suppliers" },
-      ]
-    }
-  };
-
-  const defaultWorkflow = {
-    title: "SME Operating System Workflow",
-    desc: "Standard stock input to cash collection cycles.",
-    steps: [
-      { label: "Stock Items", desc: "Register items in stock tracker", href: `/inventory`, actionText: "Stock Items" },
-      { label: "Cash Register", desc: "Sell provisions and scan checkout", href: `/pos`, actionText: "Launch POS" },
-      { label: "Trace Payments", desc: "Check MoMo and cash ledger", href: `/mobile-money`, actionText: "Verify Ledger" },
-      { label: "Analyze Margin", desc: "Extract sales totals and growth", href: `/reports`, actionText: "View Sales" },
-    ]
-  };
-
-  const activeWorkflow = businessWorkflows[businessType] || defaultWorkflow;
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -299,16 +155,10 @@ export default function TenantDashboard() {
 
   return (
     <div className="space-y-6 sm:space-y-10 pb-20">
-      <NexaAssistant />
-
-      {/* Header with Connectivity Status */}
+      {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 sm:gap-10">
         <div className="flex flex-col md:flex-row justify-between flex-1 gap-4 w-full">
           <div className="space-y-2">
-            <div className="flex items-center gap-3 text-emerald-500">
-               <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,1)] animate-pulse" />
-               <span className="text-[10px] font-black uppercase tracking-[0.3em] font-display">Data Synced</span>
-            </div>
             <h1 className="text-3xl xs:text-5xl sm:text-7xl font-black tracking-tighter uppercase italic py-1 leading-none text-foreground">
               Shop <span className="opacity-35">Dashboard</span>
             </h1>
@@ -339,7 +189,7 @@ export default function TenantDashboard() {
             onClick={() => navigate('/pos')}
           >
             <Zap className="h-5 w-5 fill-current" />
-            Open Cash Register
+            Start Selling
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Button>
           <Button 
@@ -353,70 +203,7 @@ export default function TenantDashboard() {
         </div>
       </div>
 
-      {/* Specialized Adaptive SME Operating Workflow */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative overflow-hidden rounded-[2.2rem] border border-border bg-card/60 backdrop-blur-xl p-6 sm:p-8 space-y-6"
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black uppercase text-[9px] tracking-widest px-2.5 h-5 rounded-full">
-                {businessType.toUpperCase()} Workflow Mode
-              </Badge>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight italic text-foreground mt-2">
-              {activeWorkflow.title}
-            </h3>
-            <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
-              {activeWorkflow.desc} Run your shop using this optimized step-by-step process.
-            </p>
-          </div>
-          <div className="shrink-0 flex items-center gap-2 text-xs font-bold text-emerald-500 font-mono tracking-wider bg-emerald-500/5 px-4 h-10 rounded-2xl border border-emerald-500/10">
-             <span>SYSTEM ACTIVE</span>
-          </div>
-        </div>
-
-        {/* Step-by-Step interactive process bar */}
-        <div className={cn(
-          "grid grid-cols-1 sm:grid-cols-2 gap-4",
-          activeWorkflow.steps.length === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4"
-        )}>
-          {activeWorkflow.steps.map((step, idx) => (
-            <div 
-              key={step.label}
-              className="bg-secondary/40 border border-border/60 p-5 rounded-2xl flex flex-col justify-between hover:bg-secondary/80 hover:border-emerald-500/20 transition-all cursor-pointer h-full group/workflow"
-              onClick={() => navigate(step.href)}
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 font-mono">
-                    Step {idx + 1}
-                  </span>
-                  <div className="h-2 w-2 rounded-full bg-emerald-500/30 group-hover/workflow:bg-emerald-500 group-hover/workflow:animate-ping transition-colors" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-foreground group-hover/workflow:text-emerald-500 transition-colors">
-                    {step.label}
-                  </h4>
-                  <p className="text-[10px] text-muted-foreground uppercase font-semibold leading-relaxed mt-1">
-                    {step.desc}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-5 pt-3 border-t border-border/40 flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground group-hover/workflow:text-[#00ff87] transition-all">
-                  {step.actionText} →
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Low Stock Alerts Center */}
+      {/* Low Stock Alerts */}
       {lowStock.length > 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
@@ -519,15 +306,13 @@ export default function TenantDashboard() {
         </motion.div>
       )}
 
-      {/* Quick Actions Panel */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { label: 'Sell / Cashier', icon: Zap, href: '/pos', color: 'text-emerald-500' },
-          { label: 'Products & Stock', icon: Package, href: '/inventory', color: 'text-blue-500' },
-          { label: 'Sales Reports', icon: TrendingUp, href: '/reports', color: 'text-purple-500' },
-          { label: 'Add Staff', icon: Users, href: '/staff', color: 'text-amber-500' },
-          { label: 'Expenses', icon: ArrowDownRight, href: '/expenses', color: 'text-red-500' },
-          { label: 'Settings', icon: Layers, href: '/settings', color: 'text-neutral-500' },
+          { label: 'New Sale', icon: Zap, href: '/pos', color: 'text-emerald-500' },
+          { label: 'Add Product', icon: Package, href: '/inventory', color: 'text-blue-500' },
+          { label: 'View Receipts', icon: Receipt, href: '/receipts', color: 'text-purple-500' },
+          { label: 'Reports', icon: TrendingUp, href: '/reports', color: 'text-amber-500' },
         ].map((action, i) => (
           <motion.button
             key={action.label}
@@ -545,17 +330,13 @@ export default function TenantDashboard() {
         ))}
       </div>
 
-      {/* Core KPIs Bento */}
+      {/* Key Stats */}
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Today's Sales", value: `₵ ${stats.todaySales.toLocaleString()}`, trend: `${stats.todaySalesCount} orders`, status: 'optimal', icon: TrendingUp, href: '/sales' },
           { label: "Today's Profit", value: `₵ ${stats.todayProfit.toLocaleString()}`, trend: stats.todayProfit > 0 ? 'Profit' : 'No profit', status: 'positive', icon: ArrowUpRight, href: '/profit-analysis' },
           { label: 'Products in Stock', value: stats.totalProducts.toString(), trend: `${stats.lowStockProducts} low stock`, status: stats.lowStockProducts > 0 ? 'neutral' : 'positive', icon: Package, href: '/inventory' },
-          { label: 'Credit Outstanding', value: `₵ ${stats.creditOutstanding.toLocaleString()}`, trend: stats.creditOutstanding > 0 ? 'Unpaid debts' : 'All cleared', status: stats.creditOutstanding > 0 ? 'neutral' : 'positive', icon: ArrowDownRight, href: '/credit-sales' },
-          { label: 'Active Staff', value: stats.activeStaff.toString(), trend: 'On duty', status: 'positive', icon: Users, href: '/staff' },
-          { label: 'Total Customers', value: stats.totalCustomers.toString(), trend: 'Registered', status: 'positive', icon: Users, href: '/customers' },
-          { label: "Month Net Profit", value: `₵ ${stats.netProfit.toLocaleString()}`, trend: stats.netProfit >= 0 ? 'In profit' : 'Loss', status: stats.netProfit >= 0 ? 'optimal' : 'neutral', icon: TrendingUp, href: '/profit-analysis' },
-          { label: "Today's Expenses", value: `₵ ${stats.todayExpenses.toLocaleString()}`, trend: 'Spent today', status: 'neutral', icon: ArrowDownRight, href: '/expenses' },
+          { label: 'Unpaid Credit', value: `₵ ${stats.creditOutstanding.toLocaleString()}`, trend: stats.creditOutstanding > 0 ? 'Outstanding' : 'All cleared', status: stats.creditOutstanding > 0 ? 'neutral' : 'positive', icon: ArrowDownRight, href: '/credit-sales' },
         ].map((kpi, i) => (
           <motion.div
             key={kpi.label}
@@ -589,8 +370,7 @@ export default function TenantDashboard() {
         ))}
       </div>
 
-      <div className="grid gap-6 sm:gap-10 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-6 sm:space-y-10">
+      <div className="space-y-6 sm:space-y-10">
           <Card className="border-border shadow-md overflow-hidden flex flex-col p-3 sm:p-4 min-h-[400px] sm:min-h-[500px] bg-card/40 backdrop-blur-xl rounded-[2.2rem] sm:rounded-[2.5rem]">
             <CardHeader className="px-4 sm:px-8 pt-4 sm:pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1 sm:space-y-2">
@@ -816,58 +596,6 @@ export default function TenantDashboard() {
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        <div className="space-y-6 sm:space-y-10">
-          <NexaIntelligenceHub 
-            businessName={company?.name || "OBOY YANKEE ENTERPRISE"}
-            salesData={salesData}
-            inventoryData={lowStock}
-          />
-          
-          <Card className="border-border shadow-md p-5 sm:p-6 bg-card/40 backdrop-blur-xl rounded-[2.2rem] relative overflow-hidden group">
-             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
-                <History className="h-20 w-20 text-muted-foreground" />
-              </div>
-             <CardHeader className="p-0 mb-6">
-                <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground leading-none flex items-center gap-2">
-                   <Zap className="h-4 w-4 text-amber-500" />
-                   System Status
-                </CardTitle>
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mt-2">Everything running smoothly</p>
-             </CardHeader>
-             <CardContent className="p-0 space-y-3">
-                {[
-                  { label: "Cash Register", status: "Online", desc: "Ready to sell and take payments.", health: 100, href: '/pos' },
-                  { label: "Sales Reports", status: "Active", desc: "Sales trends and graphs are working.", health: 98, href: '/reports' },
-                  { label: "Cloud Backup", status: "Stable", desc: "Your sales data is safely backed up online.", health: 100, href: '/settings' },
-                  { label: "Staff Access", status: "Stable", desc: "All staff accounts are active and working.", health: 100, href: '/staff' }
-                ].map((node) => (
-                  <div 
-                    key={node.label} 
-                    className="p-4 rounded-2xl bg-secondary/50 border border-border/50 hover:border-primary/20 hover:bg-secondary transition-all cursor-pointer group/node"
-                    onClick={() => navigate(node.href)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-foreground group-hover/node:text-emerald-500 transition-colors">{node.label}</span>
-                      </div>
-                      <span className="text-[9px] font-black text-emerald-500 uppercase">{node.status}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed mb-3">{node.desc}</p>
-                    <div className="space-y-1">
-                       <div className="flex justify-between text-[8px] font-black uppercase tracking-widest">
-                          <span className="text-muted-foreground/40">Status Check</span>
-                          <span className="text-muted-foreground">{node.health}%</span>
-                       </div>
-                       <Progress value={node.health} className="h-1 bg-secondary" />
-                    </div>
-                  </div>
-                ))}
-             </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );

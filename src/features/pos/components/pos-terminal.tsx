@@ -326,7 +326,7 @@ export function POSTerminal() {
       return;
     }
 
-    const totalWithTax = total * 1.21;
+    const totalWithTax = total;
 
     // Validate details for split payments
     if (paymentMethod === 'split') {
@@ -352,7 +352,7 @@ export function POSTerminal() {
         items: [...cart],
         total_amount: totalWithTax,
         subtotal: total,
-        tax_amount: total * 0.21,
+        tax_amount: 0,
         discount_amount: 0,
         payment_method: payloadPaymentMethod,
         customer_id: null,
@@ -374,7 +374,7 @@ export function POSTerminal() {
           items: [...cart],
           total: totalWithTax,
           subtotal: total,
-          tax: total * 0.21,
+          tax: 0,
           paymentMethod: payloadPaymentMethod,
           isOffline: !isOnline,
           date: new Date().toISOString()
@@ -637,17 +637,22 @@ export function POSTerminal() {
             </AnimatePresence>
          </div>
  
-         {/* Compact Footer design saving vertically over 200px */}
+         {/* Checkout Footer */}
          <footer className="sticky bottom-0 p-3 sm:p-5 space-y-3 sm:space-y-4 bg-[#0f172a] border-t border-white/10 z-20 backdrop-blur-xl shrink-0">
-            <div className="space-y-1 sm:space-y-1.5">
-              <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                <span>Subtotal</span>
-                <span>₵{total.toFixed(2)}</span>
+            <div className="flex justify-between items-end">
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em]">Total</span>
+                {cart.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { clearCart(); toast.success('Cart cleared'); }}
+                    className="text-[8px] font-black uppercase text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
+                  >
+                    Clear Cart
+                  </button>
+                )}
               </div>
-              <div className="flex justify-between items-end pt-1.5 border-t border-white/[0.05]">
-                <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total</span>
-                <span className="text-xl sm:text-2xl font-black italic tracking-tighter text-emerald-500 leading-none">₵{(total * 1.21).toFixed(2)}</span>
-              </div>
+              <span className="text-2xl sm:text-3xl font-black italic tracking-tighter text-emerald-500 leading-none">₵{total.toFixed(2)}</span>
             </div>
  
             <div className="grid grid-cols-5 gap-1.5">
@@ -719,7 +724,7 @@ export function POSTerminal() {
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[8px] font-black uppercase text-amber-500 tracking-wider">Configure Split Payments</span>
-                  <span className="text-[9px] font-black text-slate-400">Total: ₵{(total * 1.21).toFixed(2)}</span>
+                  <span className="text-[9px] font-black text-slate-400">Total: ₵{total.toFixed(2)}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
@@ -758,7 +763,7 @@ export function POSTerminal() {
                   const momoVal = parseFloat(splitMomo) || 0;
                   const cardVal = parseFloat(splitCard) || 0;
                   const currentSum = cashVal + momoVal + cardVal;
-                  const totalWithTax = total * 1.21;
+                  const totalWithTax = total;
                   const isMatching = Math.abs(currentSum - totalWithTax) < 0.05;
                   const diff = totalWithTax - currentSum;
                   return (
@@ -816,7 +821,7 @@ export function POSTerminal() {
               <ShoppingCart className="h-4 w-4" />
               <span>Current Order ({cartItemCount})</span>
             </div>
-            <span className="font-extrabold text-xs">₵{(total * 1.21).toFixed(2)}</span>
+            <span className="font-extrabold text-xs">₵{total.toFixed(2)}</span>
           </Button>
         </div>
       )}
@@ -850,8 +855,8 @@ export function POSTerminal() {
                     <Activity className="h-5 w-5 text-emerald-500" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black italic tracking-tighter uppercase text-white leading-none mb-0.5">Terminal Performance</h2>
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Real-time daily sales analytics & ledger</p>
+                    <h2 className="text-lg font-black italic tracking-tighter uppercase text-white leading-none mb-0.5">Today's Sales</h2>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Daily sales summary</p>
                   </div>
                 </div>
                 <Button
@@ -1152,18 +1157,10 @@ export function POSTerminal() {
                   ))}
                 </div>
 
-                {/* Invoice breakdown metrics */}
+                {/* Invoice total */}
                 <div className="space-y-2 font-mono text-[10px]">
-                  <div className="flex justify-between text-slate-400">
-                    <span className="uppercase tracking-wider">Subtotal</span>
-                    <span>₵{completedSale.subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span className="uppercase tracking-wider">Tax</span>
-                    <span>₵{completedSale.tax.toFixed(2)}</span>
-                  </div>
                   <div className="flex justify-between text-[13px] font-black pt-2.5 border-t border-white/[0.05] text-emerald-400">
-                    <span className="uppercase tracking-widest">Grand Total</span>
+                    <span className="uppercase tracking-widest">Total</span>
                     <span>₵{completedSale.total.toFixed(2)}</span>
                   </div>
                 </div>
@@ -1241,8 +1238,7 @@ export function POSTerminal() {
                           `*Items Purchased:* \n${completedSale.items.map((it: any) => `• ${it.product.name} (x${it.quantity}) - GH₵${(parseFloat(it.product.price) * it.quantity).toFixed(2)}`).join('\n')}\n` +
                           `=============================\n` +
                           `*Subtotal:* GH₵${completedSale.subtotal.toFixed(2)}\n` +
-                          `*Tax:* GH₵${completedSale.tax.toFixed(2)}\n` +
-                          `*Grand Total:* GH₵${completedSale.total.toFixed(2)}\n\n` +
+                          `*Total:* GH₵${completedSale.total.toFixed(2)}\n\n` +
                           `*Settlement:* ${completedSale.paymentMethod}\n\n` +
                           `Thank you for shopping with us! Digital Receipt link: ${window.location.origin}/receipts/${completedSale.saleId}`
                         );

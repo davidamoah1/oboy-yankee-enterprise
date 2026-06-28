@@ -270,9 +270,9 @@ export function ShiftTracker({ isOpen, onClose, isOnline }: ShiftTrackerProps) {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <h3 className="text-xl sm:text-2xl font-black italic uppercase text-emerald-400 flex items-center gap-2">
-                    <Clock3 className="h-5 w-5 animate-pulse text-emerald-500" /> Crew Shift Ledger
+                    <Clock3 className="h-5 w-5 animate-pulse text-emerald-500" /> Shift Clock In/Out
                   </h3>
-                  <p className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Clock in/out & verify offline hours cache</p>
+                  <p className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Clock in and out for your shift</p>
                 </div>
                 <button 
                   onClick={onClose}

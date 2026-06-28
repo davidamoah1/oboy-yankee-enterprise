@@ -105,7 +105,7 @@ export class APIClient {
 
           if (originalRequest._retryCount <= maxRetries) {
             if (originalRequest._retryCount === 1) {
-              toast.loading('Connecting to server...', { id: 'retry-loading', duration: Infinity });
+              toast.loading('Just a moment...', { id: 'retry-loading', duration: Infinity });
             }
             await new Promise((resolve) => setTimeout(resolve, retryDelay * originalRequest._retryCount));
             return this.instance(originalRequest);
@@ -148,19 +148,19 @@ export class APIClient {
     if (err.code === 'CANCELLED') return;
 
     if (err.status === 401) {
-      toast.error('Session Expired', { description: 'Please sign in again.' });
+      toast.error('Session Expired', { description: 'Please sign in again to continue.' });
     } else if (err.status === 403) {
-      toast.error('Access Denied', { description: err.message });
+      toast.error('Access Denied', { description: 'You do not have permission to do this. Ask your manager for help.' });
     } else if (err.status === 429 || err.status === 503) {
-      toast.error('Rate Limited', { description: 'Too many requests. Please slow down.' });
+      toast.error('Too Many Attempts', { description: 'Please wait a moment and try again.' });
     } else if (err.status === 409) {
-      toast.error('Conflict', { description: err.message, duration: 6000 });
+      toast.error('Already Exists', { description: err.message, duration: 6000 });
     } else if (err.status && err.status >= 500) {
-      toast.error('Server Error', { description: 'Something went wrong on our end. Please try again in a moment.' });
+      toast.error('Server Problem', { description: 'The server is having issues. Please try again in a moment.' });
     } else if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK' || err.message.toLowerCase().includes('timeout')) {
-      toast.error('Connection Error', { description: 'Could not reach the server. Please check your internet and try again.' });
+      toast.error('No Internet', { description: 'Could not connect. Check your internet and try again.' });
     } else {
-      toast.error('Error', { description: err.message });
+      toast.error('Something Went Wrong', { description: err.message });
     }
   }
 

@@ -15,7 +15,6 @@ import {
   Building2,
   UserCog,
   History,
-  Calculator,
   Wallet,
   Sparkles,
   ArrowRightCircle,
@@ -26,7 +25,8 @@ import {
   RotateCcw,
   HandCoins,
   TrendingUp,
-  Tag
+  Tag,
+  Trash2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -51,56 +51,43 @@ export function TenantSidebar({ onSelect }: SidebarProps) {
 
   const groups: { title: string; items: SidebarItem[] }[] = [
     {
-      title: 'Main Operations',
+      title: 'Sales',
       items: [
-        { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER, UserRole.SALES_OFFICER] },
-        { label: 'POS Terminal', href: '/pos', icon: ShoppingCart, badge: 'LIVE' },
-        { label: 'Sales History', href: '/sales', icon: History },
+        { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER] },
+        { label: 'POS - Sell', href: '/pos', icon: ShoppingCart, badge: 'LIVE' },
         { label: 'Receipts', href: '/receipts', icon: Receipt },
-        { label: 'Returns & Refunds', href: '/returns', icon: RotateCcw, isNew: true, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER] },
-        { label: 'Credit Sales', href: '/credit-sales', icon: HandCoins, isNew: true, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT] },
-        { label: 'Z-Reports', href: '/z-reports', icon: FileBarChart, isNew: true, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
+        { label: 'Sales History', href: '/sales', icon: History, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.STORE_KEEPER] },
+        { label: 'Returns & Refunds', href: '/returns', icon: RotateCcw, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER] },
+        { label: 'Credit Sales', href: '/credit-sales', icon: HandCoins, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT] },
       ]
     },
     {
-      title: 'Products & Partners',
+      title: 'Stock & People',
       items: [
-        { label: 'Products & Stock', href: '/inventory', icon: Package },
+        { label: 'Products & Stock', href: '/inventory', icon: Package, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER] },
         { label: 'Suppliers', href: '/suppliers', icon: Building2, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.STORE_KEEPER] },
-        { label: 'Staff List', href: '/staff', icon: UserCog, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.HR] },
-        { label: 'Customers', href: '/customers', icon: Users },
+        { label: 'Staff', href: '/staff', icon: UserCog, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.HR] },
+        { label: 'Customers', href: '/customers', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER] },
       ]
     },
     {
-      title: 'Bookkeeping & Money',
+      title: 'Money & Reports',
       items: [
+        { label: 'End of Day Report', href: '/z-reports', icon: FileBarChart, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
+        { label: 'Profits', href: '/profit-analysis', icon: TrendingUp, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT] },
         { label: 'Invoices & Bills', href: '/invoices', icon: CreditCard, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT] },
         { label: 'Expenses', href: '/expenses', icon: Wallet, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER, UserRole.ACCOUNTANT] },
-        { label: 'Profit Analysis', href: '/profit-analysis', icon: TrendingUp, isNew: true, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT] },
-        { label: 'Bookkeeping', href: '/accounting', icon: Calculator, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ACCOUNTANT] },
-        { label: 'Staff Salaries', href: '/payroll', icon: History, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.HR] },
+        { label: 'Reports', href: '/reports', icon: BarChart3, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
+        { label: 'Business Insights', href: '/intelligence', icon: Brain, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN], badge: 'AI' },
       ]
     },
     {
-      title: 'Services & Vendors',
+      title: 'Services & Settings',
       items: [
-        { label: 'Airtime & Data', href: '/airtime', icon: Phone, isNew: true },
-        { label: 'Bill Payments', href: '/bill-payments', icon: Zap, isNew: true },
-        { label: 'Promotions', href: '/promotions', icon: Tag, isNew: true, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER] },
-        { label: 'Mobile Money (MoMo)', href: '/mobile-money', icon: Sparkles },
-        { label: 'Online Shop', href: '/online-store', icon: ShoppingCart },
-      ]
-    },
-    {
-      title: 'Analytics & Intelligence',
-      items: [
-        { label: 'Intelligence Hub', href: '/intelligence', icon: Brain, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER], badge: 'AI' },
-        { label: 'Sales Reports', href: '/reports', icon: BarChart3, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SALES_OFFICER, UserRole.STORE_KEEPER], isNew: true },
-      ]
-    },
-    {
-      title: 'Settings & Help',
-      items: [
+        { label: 'Airtime & Data', href: '/airtime', icon: Phone, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
+        { label: 'Bill Payments', href: '/bill-payments', icon: Zap, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
+        { label: 'Promotions', href: '/promotions', icon: Tag, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
+        { label: 'Mobile Money', href: '/mobile-money', icon: Sparkles, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
         { label: 'Settings', href: '/settings', icon: Settings, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN] },
         { label: 'Support', href: '/support', icon: LifeBuoy },
       ]
@@ -115,12 +102,12 @@ export function TenantSidebar({ onSelect }: SidebarProps) {
       <Link to="/dashboard" className="h-24 px-8 flex items-center gap-4 relative z-10 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group/header">
         <div className="h-10 w-10 rounded-2xl bg-white shadow-[0_0_20px_rgba(99,102,241,0.2)] overflow-hidden flex items-center justify-center rotate-3 group-hover/header:rotate-0 transition-transform duration-500 shrink-0">
           <div className="h-full w-full flex items-center justify-center bg-indigo-600">
-            <span className="text-white font-black text-lg italic">N</span>
+            <span className="text-white font-black text-lg italic">OY</span>
           </div>
         </div>
         <div className="flex flex-col">
           <span className="text-xl font-black italic tracking-tighter text-white uppercase leading-none">OBOY YANKEE</span>
-          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-500/60 mt-1 italic">Enterprise POS</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-500/60 mt-1 italic">POS System</span>
         </div>
       </Link>
 

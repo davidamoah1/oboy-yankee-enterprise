@@ -203,7 +203,7 @@ export function TenantLayout() {
           </header>
 
           <footer className="hidden lg:flex shrink-0 h-10 border-t border-border/40 items-center justify-between px-4 sm:px-8 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 bg-secondary/10 order-last">
-             <span>OBOY YANKEE ENTERPRISE v1.0</span>
+             <span>OBOY YANKEE ENTERPRISE</span>
              <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 shadow-[0_0_5px_rgba(99,102,241,0.5)]" />
@@ -257,17 +257,7 @@ export function TenantLayout() {
               )}
             >
               <ShoppingCart className="h-5 w-5" />
-              <span className="text-[9px] font-black mt-1 uppercase tracking-tight">POS</span>
-            </Link>
-            <Link
-              to="/inventory"
-              className={cn(
-                "flex flex-col items-center justify-center flex-1 h-16 text-muted-foreground hover:text-indigo-500 transition-colors",
-                location.pathname.startsWith('/inventory') && "text-indigo-500"
-              )}
-            >
-              <Package className="h-5 w-5" />
-              <span className="text-[9px] font-black mt-1 uppercase tracking-tight">Stock</span>
+              <span className="text-[9px] font-black mt-1 uppercase tracking-tight">Sell</span>
             </Link>
             <Link
               to="/receipts"
@@ -278,6 +268,16 @@ export function TenantLayout() {
             >
               <Receipt className="h-5 w-5" />
               <span className="text-[9px] font-black mt-1 uppercase tracking-tight">Receipts</span>
+            </Link>
+            <Link
+              to="/inventory"
+              className={cn(
+                "flex flex-col items-center justify-center flex-1 h-16 text-muted-foreground hover:text-indigo-500 transition-colors",
+                location.pathname.startsWith('/inventory') && "text-indigo-500"
+              )}
+            >
+              <Package className="h-5 w-5" />
+              <span className="text-[9px] font-black mt-1 uppercase tracking-tight">Stock</span>
             </Link>
             <button
               type="button"
