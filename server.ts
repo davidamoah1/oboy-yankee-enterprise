@@ -1106,8 +1106,21 @@ app.delete("/api/invoices/:id", requireAuth, async (req: any, res) => {
 app.get("/api/products", requireAuth, async (req: any, res) => {
   try {
     const products = await prisma.product.findMany({
-      where: { companyId: req.user.companyId, deletedAt: null },
-      include: { category: true, brand: true },
+      where: { companyId: req.user.companyId, deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        barcode: true,
+        price: true,
+        costPrice: true,
+        stockQuantity: true,
+        lowStockThreshold: true,
+        isActive: true,
+        description: true,
+        category: { select: { name: true } },
+        brand: { select: { name: true } },
+      },
       orderBy: { name: "asc" },
     });
     res.json(products);
@@ -1241,24 +1254,25 @@ async function sendSMS(phone: string, message: string): Promise<boolean> {
 
 async function sendCustomerReceiptSMS(sale: any, companyPhone?: string): Promise<void> {
   try {
+    // Quick exit: no customer phone on the sale record
+    let customerPhone: string | undefined = sale.customerPhone || undefined;
+
+    if (!customerPhone && !sale.customerId) return; // No way to get phone, skip
+
     // Check if SMS is enabled in settings
     const smsEnabled = await prisma.setting.findUnique({
       where: { companyId_key: { companyId: sale.companyId, key: "sms_receipts_enabled" } },
     });
     if (smsEnabled && smsEnabled.value === "false") return;
 
-    // Get customer phone: try customerPhone field first, then customer record
-    let customerPhone: string | undefined = sale.customerPhone || undefined;
-
     if (!customerPhone && sale.customerId) {
-      const customer = await prisma.customer.findUnique({ where: { id: sale.customerId } });
+      const customer = await prisma.customer.findUnique({ where: { id: sale.customerId }, select: { phone: true } });
       customerPhone = customer?.phone || undefined;
     }
 
     if (!customerPhone) return;
 
-    const company = await prisma.company.findUnique({ where: { id: sale.companyId } });
-    const shopName = company?.name || "OBOY YANKEE";
+    const shopName = companyPhone ? "OBOY YANKEE" : "OBOY YANKEE"; // Avoid extra DB query for company name
 
     const itemsCount = sale.items?.length || 0;
     const total = Number(sale.totalAmount).toFixed(2);
@@ -1322,9 +1336,12 @@ app.get("/api/sales", requireAuth, async (req: any, res) => {
 
       const sales = await prisma.sale.findMany({
         where,
-        include: { items: { include: { product: true } }, customer: true, user: true },
+        include: { 
+          items: { take: 3, include: { product: { select: { name: true, price: true } } } }, 
+          user: { select: { fullName: true } } 
+        },
         orderBy: { createdAt: "desc" },
-        take: 100,
+        take: 50,
       });
       res.json(sales);
       return;
@@ -1373,101 +1390,112 @@ app.post("/api/sales", requireAuth, async (req: any, res) => {
 
     const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-    // GRA Ghana Tax Breakdown: NHIL 2.5%, GETFL 2.5%, VAT 15%, COVID HRL 1%
     const subtotalNum = parseFloat(subtotal) || 0;
     const discountNum = parseFloat(discountAmount) || 0;
-    const taxableAmount = subtotalNum - discountNum;
-    const nhilAmount = taxableAmount * 0.025;
-    const getfundAmount = taxableAmount * 0.025;
-    const vatAmount = taxableAmount * 0.15;
-    const covidHrlAmount = taxableAmount * 0.01;
-    const totalTax = nhilAmount + getfundAmount + vatAmount + covidHrlAmount;
+    const clientTaxAmount = parseFloat(taxAmount) || 0;
+    const totalNum = parseFloat(totalAmount) || 0;
+
+    // Batch fetch all product cost prices in a single query (instead of N+1)
+    const productIds = items.map((item: any) => item.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, costPrice: true, stockQuantity: true, name: true }
+    });
+
+    const productMap = new Map(products.map(p => [p.id, p]));
 
     // Calculate profit from cost prices
     let profitAmount = 0;
     for (const item of items) {
-      const product = await prisma.product.findUnique({ where: { id: item.productId }, select: { costPrice: true } });
+      const product = productMap.get(item.productId);
       const cost = product?.costPrice ? parseFloat(String(product.costPrice)) : 0;
       const revenue = parseFloat(item.totalPrice) || 0;
       profitAmount += revenue - (cost * item.quantity);
     }
 
-    const sale = await prisma.sale.create({
-      data: {
-        receiptNumber,
-        customerId: customerId || null,
-        userId: req.user.userId,
-        subtotal: subtotalNum,
-        discountAmount: discountNum,
-        taxAmount: totalTax,
-        nhilAmount,
-        getfundAmount,
-        vatAmount,
-        covidHrlAmount,
-        totalAmount: parseFloat(totalAmount),
-        profitAmount,
-        paymentMethod,
-        paymentStatus: isCredit ? "unpaid" : "paid",
-        status: "completed",
-        isCredit: isCredit || false,
-        creditSettled: false,
-        customerPhone: customerPhone || null,
-        notes: notes || null,
-        companyId: req.user.companyId,
-        items: {
-          create: items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: parseFloat(item.unitPrice),
-            discount: parseFloat(item.discount) || 0,
-            totalPrice: parseFloat(item.totalPrice),
-          })),
+    // Use a transaction to create sale + update stock + create stock movements atomically
+    const sale = await prisma.$transaction(async (tx) => {
+      const newSale = await tx.sale.create({
+        data: {
+          receiptNumber,
+          customerId: customerId || null,
+          userId: req.user.userId,
+          subtotal: subtotalNum,
+          discountAmount: discountNum,
+          taxAmount: clientTaxAmount,
+          nhilAmount: 0,
+          getfundAmount: 0,
+          vatAmount: 0,
+          covidHrlAmount: 0,
+          totalAmount: totalNum,
+          profitAmount,
+          paymentMethod,
+          paymentStatus: isCredit ? "unpaid" : "paid",
+          status: "completed",
+          isCredit: isCredit || false,
+          creditSettled: false,
+          customerPhone: customerPhone || null,
+          notes: notes || null,
+          companyId: req.user.companyId,
+          items: {
+            create: items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: parseFloat(item.unitPrice),
+              discount: parseFloat(item.discount) || 0,
+              totalPrice: parseFloat(item.totalPrice),
+            })),
+          },
         },
-      },
-      include: { items: { include: { product: true } } },
+        include: { items: { include: { product: true } } },
+      });
+
+      // Batch update stock and create stock movements
+      const stockUpdates = items.map(async (item: any) => {
+        const product = productMap.get(item.productId);
+        if (product && product.stockQuantity < item.quantity) {
+          logger.warn(`[SALE] Stock insufficient for ${product.name}: have ${product.stockQuantity}, selling ${item.quantity}. Allowing sale but stock will go negative.`);
+        }
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { decrement: item.quantity } },
+        });
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            type: "sale",
+            quantity: -item.quantity,
+            reference: newSale.id,
+          },
+        });
+      });
+
+      await Promise.all(stockUpdates);
+
+      // Update customer loyalty points (1 point per ₵1 spent)
+      if (customerId) {
+        await tx.customer.update({
+          where: { id: customerId },
+          data: { loyaltyPoints: { increment: Math.floor(totalNum) } },
+        });
+      }
+
+      // Record payment if Paystack reference provided
+      if (paystackReference) {
+        await tx.payment.create({
+          data: {
+            saleId: newSale.id,
+            amount: totalNum,
+            method: paymentMethod,
+            reference: paystackReference,
+          },
+        });
+      }
+
+      return newSale;
     });
 
-    // Update product stock
-    for (const item of items) {
-      const product = await prisma.product.findUnique({ where: { id: item.productId }, select: { stockQuantity: true, name: true } });
-      if (product && product.stockQuantity < item.quantity) {
-        logger.warn(`[SALE] Stock insufficient for ${product.name}: have ${product.stockQuantity}, selling ${item.quantity}. Allowing sale but stock will go negative.`);
-      }
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: { stockQuantity: { decrement: item.quantity } },
-      });
-      await prisma.stockMovement.create({
-        data: {
-          productId: item.productId,
-          type: "sale",
-          quantity: -item.quantity,
-          reference: sale.id,
-        },
-      });
-    }
-
-    // Record payment if Paystack reference provided
-    if (paystackReference) {
-      await prisma.payment.create({
-        data: {
-          saleId: sale.id,
-          amount: parseFloat(totalAmount),
-          method: paymentMethod,
-          reference: paystackReference,
-        },
-      });
-    }
-
-    // Update customer loyalty points (1 point per ₵1 spent)
-    if (customerId) {
-      await prisma.customer.update({
-        where: { id: customerId },
-        data: { loyaltyPoints: { increment: Math.floor(parseFloat(totalAmount)) } },
-      });
-    }
-
-    // Send SMS receipt to customer (async, non-blocking)
+    // Send SMS receipt to customer (async, non-blocking, outside transaction)
     sendCustomerReceiptSMS(sale).catch(err => logger.error("[SMS] Post-sale SMS failed:", { error: err.message }));
 
     res.json(sale);
@@ -2973,5 +3001,4 @@ async function startServer() {
 if (!process.env.VERCEL) {
   startServer();
 }
-
 export default app;

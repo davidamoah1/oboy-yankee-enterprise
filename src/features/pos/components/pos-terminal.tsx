@@ -382,7 +382,7 @@ export function POSTerminal() {
 
         clearCart();
         setActiveTab('products'); // Switch back after checkout
-        fetchRecentTransactions();
+        fetchRecentTransactions().catch(() => {}); // Non-blocking refresh
 
         // Clear values
         setSplitCash('');
