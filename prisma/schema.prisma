@@ -78,6 +78,8 @@ model User {
   role          String   @default("cashier") // super_admin | company_admin | manager | cashier | store_keeper | sales_officer | accountant | hr | receptionist | custom
   customRoleId  String?  @db.Uuid
   lastLoginAt   DateTime?
+  resetToken    String?
+  resetTokenExpiry DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   deletedAt     DateTime?

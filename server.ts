@@ -147,16 +147,16 @@ if (isDev) {
       useDefaults: true,
       directives: {
         "default-src": ["'self'"],
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.paystack.co"],
+        "script-src": ["'self'", "'unsafe-inline'", "https://js.paystack.co"],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
         "img-src": ["'self'", "data:", "blob:", "https:", "https://images.unsplash.com"],
         "connect-src": ["'self'", "https://*", "wss://*"],
         "frame-src": ["'self'", "https://js.paystack.co", "https://*.paystack.co"],
-        "frame-ancestors": ["'self'", "https://ai.studio", "https://*.google.com", "https://*.run.app"]
+        "frame-ancestors": ["'self'"]
       }
     },
-    frameguard: false,
+    frameguard: { action: "deny" },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" }
   }));
@@ -294,23 +294,33 @@ const webhookLimiter = rateLimit({
 // Mount general api rate limiting
 app.use("/api/", apiLimiter);
 
-// JWT Configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-dev-secret-at-least-32-chars-long';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-dev-refresh-secret-at-least-32-chars';
+// JWT Configuration — fail hard if secrets are missing in production
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  logger.error("[FATAL] JWT_SECRET is missing or too short (min 32 chars). Server cannot start securely.");
+  if (process.env.NODE_ENV === 'production') process.exit(1);
+}
+if (!JWT_REFRESH_SECRET || JWT_REFRESH_SECRET.length < 32) {
+  logger.error("[FATAL] JWT_REFRESH_SECRET is missing or too short (min 32 chars). Server cannot start securely.");
+  if (process.env.NODE_ENV === 'production') process.exit(1);
+}
+
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
 
 function generateAccessToken(userId: string, role: string, companyId: string): string {
-  return jwt.sign({ userId, role, companyId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+  return jwt.sign({ userId, role, companyId }, JWT_SECRET!, { expiresIn: ACCESS_TOKEN_EXPIRY });
 }
 
 function generateRefreshToken(userId: string): string {
-  return jwt.sign({ userId }, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+  return jwt.sign({ userId }, JWT_REFRESH_SECRET!, { expiresIn: REFRESH_TOKEN_EXPIRY });
 }
 
 function verifyAccessToken(token: string): any {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET!);
   } catch {
     return null;
   }
@@ -318,7 +328,7 @@ function verifyAccessToken(token: string): any {
 
 function verifyRefreshToken(token: string): any {
   try {
-    return jwt.verify(token, JWT_REFRESH_SECRET);
+    return jwt.verify(token, JWT_REFRESH_SECRET!);
   } catch {
     return null;
   }
@@ -431,9 +441,9 @@ const resetLimiter = rateLimit({
 app.get("/api/health", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: "ok", database: "connected", environment: process.env.NODE_ENV, timestamp: new Date() });
+    res.json({ status: "ok", timestamp: new Date() });
   } catch (err: any) {
-    res.status(200).json({ status: "degraded", database: "reconnecting", environment: process.env.NODE_ENV, timestamp: new Date() });
+    res.status(200).json({ status: "degraded", timestamp: new Date() });
   }
 });
 
@@ -710,13 +720,90 @@ app.post("/api/auth/reset-password", resetLimiter, async (req, res) => {
       message: "If an account exists with the provided email, a password reset link has been sent.",
     });
 
-    if (user) {
+    if (user && user.status === "active" && !user.deletedAt) {
+      // Generate a secure reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Store hashed token in DB (never store raw token)
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetToken: resetTokenHash,
+          resetTokenExpiry: resetExpires,
+        },
+      });
+
+      const resetUrl = `${process.env.VITE_APP_URL || ''}/reset-password?token=${resetToken}`;
+
+      // Send reset email (fire and forget — don't block response)
+      emailService.sendEmail({
+        to: cleanEmail,
+        subject: 'Password Reset — OBOY YANKEE ENTERPRISE',
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 24px;">
+            <h2 style="color: #10b981;">Password Reset Request</h2>
+            <p>Hello ${user.fullName},</p>
+            <p>You requested a password reset for your OBOY YANKEE ENTERPRISE account.</p>
+            <p>Click the button below to set a new password. This link expires in 1 hour.</p>
+            <div style="margin: 30px 0;">
+              <a href="${resetUrl}" style="background-color: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset Password</a>
+            </div>
+            <p>If you didn't request this, you can safely ignore this email.</p>
+            <p>Best regards,<br/>The OBOY YANKEE Team</p>
+          </div>
+        `,
+      }).catch(err => logger.error('[PASSWORD RESET EMAIL] Failed to send:', { error: err.message }));
+
       logger.info(`[AUTH RESET] Password reset requested for ${cleanEmail}`);
-      // TODO: Send reset email via emailService when configured
     }
   } catch (error: any) {
     logger.error("[AUTH RESET ERROR]", { error: error.message });
     res.status(500).json({ error: "Password reset request failed." });
+  }
+});
+
+// Password reset confirmation (verify token + set new password)
+app.post("/api/auth/reset-password/confirm", resetLimiter, async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: "Reset token and new password are required." });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters." });
+  }
+
+  try {
+    const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: resetTokenHash,
+        resetTokenExpiry: { gt: new Date() },
+        deletedAt: null,
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired reset token." });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    res.json({ success: true, message: "Password reset successfully. Please log in." });
+  } catch (error: any) {
+    logger.error("[PASSWORD RESET CONFIRM ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to reset password." });
   }
 });
 
@@ -734,7 +821,7 @@ app.post("/api/admin/invite-staff", requireAuth, requirePermission("manage_users
       return res.status(409).json({ error: "A user with this email already exists." });
     }
 
-    const tempPassword = Math.random().toString(36).slice(-10) + 'Nexa1!';
+    const tempPassword = crypto.randomBytes(6).toString('base64url').replace(/[-_]/g, '') + 'Nexa1!';
     const passwordHash = await bcrypt.hash(tempPassword, 12);
 
     const newUser = await prisma.user.create({
@@ -781,7 +868,7 @@ app.post("/api/users/invite", requireAuth, requirePermission("manage_users"), ad
       return res.status(409).json({ error: "A user with this email already exists." });
     }
 
-    const tempPassword = Math.random().toString(36).slice(-10) + 'Nexa1!';
+    const tempPassword = crypto.randomBytes(6).toString('base64url').replace(/[-_]/g, '') + 'Nexa1!';
     const passwordHash = await bcrypt.hash(tempPassword, 12);
 
     const newUser = await prisma.user.create({
@@ -1161,6 +1248,13 @@ app.post("/api/products", requireAuth, requirePermission("manage_products"), asy
 app.put("/api/products/:id", requireAuth, requirePermission("manage_products"), async (req: any, res) => {
   try {
     const { name, sku, barcode, categoryId, brandId, price, costPrice, stockQuantity, reorderLevel, expiryDate, description, unit, isActive } = req.body;
+
+    // Verify product belongs to user's company
+    const existing = await prisma.product.findUnique({ where: { id: req.params.id }, select: { companyId: true } });
+    if (!existing || existing.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "Product not found." });
+    }
+
     const data: any = { updatedAt: new Date() };
     if (name !== undefined) data.name = name;
     if (sku !== undefined) data.sku = sku;
@@ -1189,6 +1283,10 @@ app.put("/api/products/:id", requireAuth, requirePermission("manage_products"), 
 
 app.delete("/api/products/:id", requireAuth, requirePermission("manage_products"), async (req: any, res) => {
   try {
+    const existing = await prisma.product.findUnique({ where: { id: req.params.id }, select: { companyId: true } });
+    if (!existing || existing.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "Product not found." });
+    }
     await prisma.product.update({
       where: { id: req.params.id },
       data: { deletedAt: new Date(), isActive: false },
@@ -1846,7 +1944,9 @@ app.get("/api/z-reports/:id", requireAuth, async (req: any, res) => {
       where: { id: req.params.id },
       include: { items: { include: { sale: { include: { items: true } } } } },
     });
-    if (!report) return res.status(404).json({ error: "Report not found." });
+    if (!report || report.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "Report not found." });
+    }
     res.json(report);
   } catch (error: any) {
     res.status(500).json({ error: "Failed to fetch Z-report." });
@@ -1970,6 +2070,10 @@ app.post("/api/promotions", requireAuth, requirePermission("manage_products"), a
 
 app.put("/api/promotions/:id", requireAuth, requirePermission("manage_products"), async (req: any, res) => {
   try {
+    const existing = await prisma.promotion.findUnique({ where: { id: req.params.id }, select: { companyId: true } });
+    if (!existing || existing.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "Promotion not found." });
+    }
     const promotion = await prisma.promotion.update({
       where: { id: req.params.id },
       data: req.body,
@@ -1982,6 +2086,10 @@ app.put("/api/promotions/:id", requireAuth, requirePermission("manage_products")
 
 app.delete("/api/promotions/:id", requireAuth, requirePermission("manage_products"), async (req: any, res) => {
   try {
+    const existing = await prisma.promotion.findUnique({ where: { id: req.params.id }, select: { companyId: true } });
+    if (!existing || existing.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "Promotion not found." });
+    }
     await prisma.promotion.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (error: any) {
