@@ -86,18 +86,22 @@ export class APIClient {
           }
         }
 
-        const shouldRetry =
-          originalRequest &&
-          (error.response?.status >= 500 ||
-           error.code === 'ECONNABORTED' ||
-           error.code === 'ERR_NETWORK' ||
-           error.code === 'ETIMEDOUT' ||
-           !error.response);
+        // Only retry on server errors (500+), network errors, or no response at all
+        // Don't retry on 400/401/403/404 — those are legitimate client errors
+        const isAuthEndpoint = originalRequest?.url?.startsWith('/api/auth/');
+        const isServerError =
+          error.response?.status >= 500 ||
+          error.code === 'ECONNABORTED' ||
+          error.code === 'ERR_NETWORK' ||
+          error.code === 'ETIMEDOUT' ||
+          (!error.response && !error.status);
+
+        const shouldRetry = originalRequest && isServerError && !isAuthEndpoint;
 
         if (shouldRetry) {
           originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
-          const maxRetries = 4;
-          const retryDelay = 4000;
+          const maxRetries = 3;
+          const retryDelay = 2000;
 
           if (originalRequest._retryCount <= maxRetries) {
             if (originalRequest._retryCount === 1) {
