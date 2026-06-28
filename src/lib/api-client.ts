@@ -51,7 +51,10 @@ export class APIClient {
     );
 
     this.instance.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        toast.dismiss('retry-loading');
+        return response;
+      },
       async (error) => {
         const originalRequest = error.config;
 
@@ -85,7 +88,11 @@ export class APIClient {
 
         const shouldRetry =
           originalRequest &&
-          (error.response?.status >= 500 || error.code === 'ECONNABORTED');
+          (error.response?.status >= 500 ||
+           error.code === 'ECONNABORTED' ||
+           error.code === 'ERR_NETWORK' ||
+           error.code === 'ETIMEDOUT' ||
+           !error.response);
 
         if (shouldRetry) {
           originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
@@ -93,9 +100,13 @@ export class APIClient {
           const retryDelay = 4000;
 
           if (originalRequest._retryCount <= maxRetries) {
+            if (originalRequest._retryCount === 1) {
+              toast.loading('Connecting to server...', { id: 'retry-loading', duration: Infinity });
+            }
             await new Promise((resolve) => setTimeout(resolve, retryDelay * originalRequest._retryCount));
             return this.instance(originalRequest);
           }
+          toast.dismiss('retry-loading');
         }
 
         const normalized = this.normalizeError(error);
@@ -141,9 +152,9 @@ export class APIClient {
     } else if (err.status === 409) {
       toast.error('Conflict', { description: err.message, duration: 6000 });
     } else if (err.status && err.status >= 500) {
-      toast.error('Connection Issue', { description: 'The server is taking longer than usual. Please try again.' });
-    } else if (err.code === 'ECONNABORTED' || err.message.toLowerCase().includes('timeout')) {
-      toast.error('Network Timeout', { description: 'Connection is slow or server is unreachable.' });
+      toast.error('Server Error', { description: 'Something went wrong on our end. Please try again in a moment.' });
+    } else if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK' || err.message.toLowerCase().includes('timeout')) {
+      toast.error('Connection Error', { description: 'Could not reach the server. Please check your internet and try again.' });
     } else {
       toast.error('Error', { description: err.message });
     }
