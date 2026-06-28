@@ -106,7 +106,9 @@ export class APIClient {
           const retryDelay = 2000;
 
           if (originalRequest._retryCount <= maxRetries) {
-            if (originalRequest._retryCount === 1) {
+            // Only show toast for auth endpoints (login) — other pages handle their own loading states
+            const isAuthEndpoint = originalRequest?.url?.startsWith('/api/auth/');
+            if (originalRequest._retryCount === 1 && isAuthEndpoint) {
               toast.loading('Connecting to server, please wait...', { id: 'retry-loading', duration: Infinity });
             }
             await new Promise((resolve) => setTimeout(resolve, retryDelay * originalRequest._retryCount));
