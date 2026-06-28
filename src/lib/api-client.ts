@@ -43,6 +43,10 @@ export class APIClient {
         if (config.url?.startsWith('/api/auth/')) {
           config.timeout = 60000;
         }
+        // POST /api/sales: short timeout — POS is offline-first, no need to wait long
+        if (config.method === 'post' && config.url?.startsWith('/api/sales')) {
+          config.timeout = 15000;
+        }
 
         const token = tokenStorage.getAccessToken();
         if (token && config.headers) {
@@ -98,12 +102,15 @@ export class APIClient {
           error.code === 'ETIMEDOUT' ||
           (!error.response && !error.status);
 
-        const shouldRetry = originalRequest && isServerError;
+        // Don't retry POST /api/sales — the POS is offline-first, sale is already in IndexedDB
+        // and will be synced in the background. Retrying just adds 20s of waiting.
+        const isSalesPost = originalRequest?.method === 'post' && originalRequest?.url?.startsWith('/api/sales');
+        const shouldRetry = originalRequest && isServerError && !isSalesPost;
 
         if (shouldRetry) {
           originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
-          const maxRetries = 4;
-          const retryDelay = 2000;
+          const maxRetries = 2;
+          const retryDelay = 1500;
 
           if (originalRequest._retryCount <= maxRetries) {
             // Only show toast for auth endpoints (login) — other pages handle their own loading states
@@ -111,7 +118,7 @@ export class APIClient {
             if (originalRequest._retryCount === 1 && isAuthEndpoint) {
               toast.loading('Connecting to server, please wait...', { id: 'retry-loading', duration: Infinity });
             }
-            await new Promise((resolve) => setTimeout(resolve, retryDelay * originalRequest._retryCount));
+            await new Promise((resolve) => setTimeout(resolve, retryDelay));
             return this.instance(originalRequest);
           }
           toast.dismiss('retry-loading');
@@ -119,10 +126,13 @@ export class APIClient {
 
         const normalized = this.normalizeError(error);
 
+        // Skip error toast for sales POST — POS is offline-first, sale is saved in IndexedDB
+        const isSalesPostError = originalRequest?.method === 'post' && originalRequest?.url?.startsWith('/api/sales');
         const skipToast =
           originalRequest?.headers?.['X-Skip-Global-Toast'] === 'true' ||
           originalRequest?.headers?.['x-skip-global-toast'] === 'true' ||
-          originalRequest?.skipToast;
+          originalRequest?.skipToast ||
+          isSalesPostError;
 
         if (!skipToast) {
           this.displayToastForError(normalized);

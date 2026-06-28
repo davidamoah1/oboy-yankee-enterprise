@@ -340,7 +340,7 @@ export function POSTerminal() {
       }
     }
 
-    const toastId = toast.loading('Recording transaction...');
+    const toastId = toast.loading('Processing sale...');
 
     try {
       const momoLabel = momoProvider === 'mtn' ? 'MTN MoMo' : momoProvider === 'telecel' ? 'Telecel Cash' : 'AirtelTigo Cash';
@@ -363,8 +363,8 @@ export function POSTerminal() {
       if (result && result.saleId) {
         toast.success(
           result.syncedOnline 
-            ? 'Transaction completed and recorded!' 
-            : 'Transaction completed (Saved to Offline Cache)', 
+            ? 'Sale completed!' 
+            : 'Sale saved! (Will sync to server automatically)', 
           { id: toastId }
         );
         

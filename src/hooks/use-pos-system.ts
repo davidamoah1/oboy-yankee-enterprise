@@ -234,7 +234,7 @@ export function usePOSSystem() {
         synced: false
       };
 
-      // 1. Save to local DB first (Guarantees data persistence)
+      // 1. Save to local DB first (Guarantees data persistence) — this is instant
       if (db) {
         try {
           await db.put('sales_queue', entry);
@@ -246,6 +246,7 @@ export function usePOSSystem() {
       let syncedOnline = false;
       if (isOnline) {
         // 2. Try to sync immediately if online (failure is non-fatal — sale is already in IndexedDB)
+        // Use a short timeout — if server is slow, just keep it offline and sync later
         try {
           syncedOnline = await syncSale(entry);
         } catch (syncErr) {
@@ -254,9 +255,9 @@ export function usePOSSystem() {
         }
       } else {
         if (db) {
-          toast.warning("Station Offline: Transaction Buffered locally.");
+          toast.warning("Saved offline — will sync when connection returns.");
         } else {
-          toast.error("Station Offline & Local Storage Unavailable. Transaction cannot be saved.");
+          toast.error("Cannot save transaction — storage unavailable.");
           return null;
         }
       }
@@ -264,7 +265,7 @@ export function usePOSSystem() {
       return { saleId, syncedOnline };
     } catch (err) {
       console.error('[POS] Critical Write Failure:', err);
-      toast.error("POS Data Corruption Risk: Manual logging required.");
+      toast.error("Could not save transaction. Please try again.");
       return null;
     }
   };
