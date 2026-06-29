@@ -45,6 +45,7 @@ import ProfitAnalysisPage from "./pages/tenant/profit-analysis";
 import PromotionsPage from "./pages/tenant/promotions";
 
 import LoginPage from "./pages/auth/login";
+import ResetPasswordPage from "./pages/auth/reset-password";
 import VerifyReceiptPage from "./pages/verify-receipt";
 
 const LoadingFallback = () => (
@@ -67,6 +68,7 @@ const LoadingFallback = () => (
 );
 
 import { ErrorBoundary } from "./components/error-boundary";
+import { PWAUpdatePrompt } from "./components/pwa-update-prompt";
 
 export default function App() {
   const { authInitialized, isAuthenticated } = useAuth();
@@ -87,6 +89,7 @@ export default function App() {
             <Route element={<AppLayout />}>
               {/* Auth */}
               <Route path="/login" element={isAuthenticated ? <Navigate to="/pos" replace /> : <LoginPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Public receipt verification */}
               <Route path="/verify-receipt/:receiptId" element={<VerifyReceiptPage />} />
@@ -135,6 +138,7 @@ export default function App() {
           )}
         </Suspense>
       </BrowserRouter>
+      <PWAUpdatePrompt />
      </ErrorBoundary>
     </ThemeProvider>
   );
