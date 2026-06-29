@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { Joyride as JoyRide, Step, CallBackProps, STATUS } from 'react-joyride';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
+import { Joyride as JoyRide, Step, STATUS, TourData } from 'react-joyride';
+import { useAuth } from '@/contexts/auth-context';
 
 interface TourContextType {
   run: boolean;
@@ -16,7 +17,7 @@ const dashboardSteps: Step[] = [
   {
     target: 'body',
     content: 'Welcome to OBOY YANKEE ENTERPRISE! Let\'s take a quick tour of your POS system.',
-    disableBeacon: true,
+    skipBeacon: true,
     placement: 'center',
   },
   {
@@ -62,7 +63,7 @@ const dashboardSteps: Step[] = [
   {
     target: 'body',
     content: 'That\'s it! You can restart this tour anytime from Settings. Happy selling!',
-    disableBeacon: true,
+    skipBeacon: true,
     placement: 'center',
   },
 ];
@@ -71,7 +72,7 @@ const posSteps: Step[] = [
   {
     target: 'body',
     content: 'Welcome to the POS Terminal! This is where you make sales.',
-    disableBeacon: true,
+    skipBeacon: true,
     placement: 'center',
   },
   {
@@ -107,7 +108,7 @@ const posSteps: Step[] = [
   {
     target: 'body',
     content: 'You\'re ready to start selling! Sales are saved instantly and sync to the server automatically.',
-    disableBeacon: true,
+    skipBeacon: true,
     placement: 'center',
   },
 ];
@@ -122,6 +123,8 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [run, setRun] = useState(false);
   const [tourKey, setTourKey] = useState(0);
   const [steps, setSteps] = useState<Step[]>(dashboardSteps);
+  const { authInitialized, isAuthenticated } = useAuth();
+  const autoStartAttempted = useRef(false);
 
   const startTour = useCallback(() => {
     const pathname = window.location.pathname;
@@ -132,20 +135,32 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const resetTour = useCallback(() => {
     localStorage.removeItem(TOUR_STORAGE_KEY);
+    autoStartAttempted.current = false;
     startTour();
   }, [startTour]);
 
   useEffect(() => {
-    const completed = localStorage.getItem(TOUR_STORAGE_KEY);
-    if (!completed) {
-      const timer = setTimeout(() => {
-        startTour();
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [startTour]);
+    if (autoStartAttempted.current) return;
+    if (!authInitialized || !isAuthenticated) return;
 
-  const handleCallback = (data: CallBackProps) => {
+    const completed = localStorage.getItem(TOUR_STORAGE_KEY);
+    if (completed) {
+      autoStartAttempted.current = true;
+      return;
+    }
+
+    const pathname = window.location.pathname;
+    const isValidTourPage = pathname.includes('/dashboard') || pathname.includes('/pos') || pathname === '/';
+    if (!isValidTourPage) return;
+
+    autoStartAttempted.current = true;
+    const timer = setTimeout(() => {
+      startTour();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [authInitialized, isAuthenticated, startTour]);
+
+  const handleEvent = (data: TourData) => {
     const { status } = data;
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
@@ -159,10 +174,19 @@ export function TourProvider({ children }: { children: ReactNode }) {
         key={tourKey}
         steps={steps}
         run={run}
-        callback={handleCallback}
+        onEvent={handleEvent}
         continuous
-        showSkipButton
         showProgress
+        scrollToFirstStep
+        options={{
+          primaryColor: '#10b981',
+          backgroundColor: '#0f172a',
+          textColor: '#f8fafc',
+          arrowColor: '#0f172a',
+          overlayColor: 'rgba(0, 0, 0, 0.75)',
+          zIndex: 9999,
+          buttons: ['back', 'close', 'primary', 'skip'],
+        }}
         locale={{
           back: 'Back',
           close: 'Close',
@@ -171,14 +195,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
           skip: 'Skip Tour',
         }}
         styles={{
-          options: {
-            primaryColor: '#10b981',
-            backgroundColor: '#0f172a',
-            textColor: '#f8fafc',
-            arrowColor: '#0f172a',
-            overlayColor: 'rgba(0, 0, 0, 0.75)',
-            zIndex: 9999,
-          },
           tooltip: {
             borderRadius: '16px',
             padding: '20px',
@@ -194,7 +210,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
             fontWeight: 500,
             lineHeight: 1.5,
           },
-          buttonNext: {
+          buttonPrimary: {
             backgroundColor: '#10b981',
             borderRadius: '10px',
             fontSize: '12px',
