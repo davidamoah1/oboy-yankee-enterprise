@@ -97,7 +97,9 @@ export function TenantLayout() {
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 className="fixed lg:relative w-[280px] h-full shrink-0 z-[50] lg:z-auto"
               >
+                <div data-tour="sidebar" className="h-full">
                 <TenantSidebar onSelect={() => window.innerWidth < 1024 && setIsSidebarOpen(false)} />
+                </div>
               </motion.div>
             </>
           )}
@@ -132,6 +134,7 @@ export function TenantLayout() {
               <div className="hidden lg:flex items-center relative group w-80">
                 <Search className="absolute left-4 h-4 w-4 text-muted-foreground group-focus-within:text-indigo-500 transition-colors shrink-0" />
                 <button 
+                  data-tour="quick-search"
                   onClick={() => {
                     const event = new KeyboardEvent('keydown', {
                       key: 'k',
@@ -162,7 +165,7 @@ export function TenantLayout() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="p-1 rounded-2xl ring-1 ring-border hover:ring-indigo-500/30 transition-all bg-muted/40 text-foreground shrink-0">
+                      <Button variant="ghost" data-tour="user-menu" className="p-1 rounded-2xl ring-1 ring-border hover:ring-indigo-500/30 transition-all bg-muted/40 text-foreground shrink-0">
                         <Avatar className="h-9 w-9 rounded-xl">
                           <AvatarImage src={user?.avatarUrl || ""} />
                           <AvatarFallback className="bg-indigo-500 text-white font-black text-[10px]">{user?.fullName?.substring(0, 2).toUpperCase() || "OP"}</AvatarFallback>

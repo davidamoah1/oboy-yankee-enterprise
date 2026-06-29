@@ -449,6 +449,7 @@ export function POSTerminal() {
                       toast.info(`Network status toggled! Simulated network is now ${!simulatedOffline ? 'OFFLINE' : 'ONLINE'}.`);
                     }}
                     className="flex items-center gap-1.5 bg-white/5 border border-white/5 hover:bg-white/10 px-2 py-0.5 rounded-full transition-all active:scale-95 cursor-pointer text-left select-none"
+                    data-tour="pos-offline"
                     title="Click to toggle network simulation"
                  >
                     <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isOnline ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500")} />
@@ -460,7 +461,8 @@ export function POSTerminal() {
             </div>
             <div className="flex items-center gap-2 shrink-0 overflow-x-auto no-scrollbar">
               <Button 
-                variant="outline" 
+                variant="outline"
+                data-tour="pos-scan"
                 onClick={() => setIsScannerOpen(true)}
                 className="h-9 sm:h-10 rounded-xl border-white/5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 hover:bg-emerald-500/10 font-bold uppercase tracking-widest text-[9px] gap-1.5 px-3 transition-colors shrink-0"
               >
@@ -498,7 +500,7 @@ export function POSTerminal() {
             </div>
           </div>
 
-          <div className="relative group">
+          <div data-tour="pos-search" className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 group-focus-within:text-emerald-500 transition-colors" />
             <input 
               type="text"
@@ -527,7 +529,7 @@ export function POSTerminal() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-hidden relative">
+        <div data-tour="pos-products" className="flex-1 overflow-hidden relative">
           {products.length === 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 overflow-y-auto no-scrollbar h-full pb-24 lg:pb-8">
               {[...Array(8)].map((_, i) => (
@@ -556,7 +558,7 @@ export function POSTerminal() {
         </div>
       </div>
       {/* Cart & Checkout Section */}
-      <div className={cn(
+      <div data-tour="pos-cart" className={cn(
         "w-full lg:w-[380px] xl:w-[450px] lg:h-full flex flex-col bg-slate-900 rounded-[24px] sm:rounded-3xl lg:rounded-[40px] border border-white/5 overflow-hidden shadow-2xl relative flex-1 lg:flex-initial min-h-0",
         activeTab !== 'cart' && "hidden lg:flex"
       )}>
@@ -800,6 +802,7 @@ export function POSTerminal() {
 
             <Button 
               type="button"
+              data-tour="pos-checkout"
               onClick={handleCheckout}
               disabled={cart.length === 0}
               className="w-full h-11 sm:h-13 rounded-xl sm:rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs shadow-xl shadow-emerald-500/15 gap-2 transition-all active:scale-[0.98]"

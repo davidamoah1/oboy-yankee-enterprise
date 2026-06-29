@@ -185,6 +185,7 @@ export default function TenantDashboard() {
         
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
           <Button 
+            data-tour="start-selling"
             className="w-full sm:w-auto rounded-2xl h-12 sm:h-14 px-6 sm:px-8 gap-3 font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/10 bg-emerald-500 hover:bg-emerald-400 text-black group transition-all" 
             onClick={() => navigate('/pos')}
           >
@@ -307,7 +308,7 @@ export default function TenantDashboard() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div data-tour="quick-actions" className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'New Sale', icon: Zap, href: '/pos', color: 'text-emerald-500' },
           { label: 'Add Product', icon: Package, href: '/inventory', color: 'text-blue-500' },
@@ -331,7 +332,7 @@ export default function TenantDashboard() {
       </div>
 
       {/* Key Stats */}
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div data-tour="kpi-cards" className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Today's Sales", value: `₵ ${stats.todaySales.toLocaleString()}`, trend: `${stats.todaySalesCount} orders`, status: 'optimal', icon: TrendingUp, href: '/sales' },
           { label: "Today's Profit", value: `₵ ${stats.todayProfit.toLocaleString()}`, trend: stats.todayProfit > 0 ? 'Profit' : 'No profit', status: 'positive', icon: ArrowUpRight, href: '/profit-analysis' },
@@ -371,7 +372,7 @@ export default function TenantDashboard() {
       </div>
 
       <div className="space-y-6 sm:space-y-10">
-          <Card className="border-border shadow-md overflow-hidden flex flex-col p-3 sm:p-4 min-h-[400px] sm:min-h-[500px] bg-card/40 backdrop-blur-xl rounded-[2.2rem] sm:rounded-[2.5rem]">
+          <Card data-tour="sales-chart" className="border-border shadow-md overflow-hidden flex flex-col p-3 sm:p-4 min-h-[400px] sm:min-h-[500px] bg-card/40 backdrop-blur-xl rounded-[2.2rem] sm:rounded-[2.5rem]">
             <CardHeader className="px-4 sm:px-8 pt-4 sm:pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1 sm:space-y-2">
                 <CardTitle className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic text-foreground">Weekly Sales Graph</CardTitle>
@@ -557,7 +558,7 @@ export default function TenantDashboard() {
             </Card>
 
             {/* Low Stock Watch Section */}
-            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
+            <Card data-tour="low-stock" className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 flex flex-row items-center justify-between">
                 <div className="space-y-1">
                   <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground">Low Stock Warnings</CardTitle>

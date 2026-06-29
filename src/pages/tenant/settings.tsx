@@ -21,7 +21,8 @@ import {
   Bell,
   Mail,
   MessageSquare,
-  Send
+  Send,
+  Compass
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,11 +36,13 @@ import { useTheme } from "@/components/theme-provider";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { useTour } from "@/contexts/tour-context";
 import { apiClient } from "@/lib/api-client";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { signOut, user, company, refreshProfile } = useAuth();
+  const { resetTour } = useTour();
   const [isSaving, setIsSaving] = useState(false);
 
   // Form states
@@ -597,6 +600,22 @@ export default function SettingsPage() {
                           {changingPassword ? "Changing..." : "Change Password"}
                        </Button>
                     </div>
+                 </div>
+
+                 <div className="pt-10 border-t border-white/5 space-y-6">
+                    <div className="space-y-1">
+                       <h4 className="text-lg font-black italic uppercase leading-none tracking-tighter flex items-center gap-2">
+                          <Compass className="h-4 w-4" /> App Tour Guide
+                       </h4>
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic leading-none">Take a guided walkthrough of the app's key features.</p>
+                    </div>
+                    <Button
+                       onClick={resetTour}
+                       className="h-14 font-black uppercase tracking-widest text-[10px] px-10 rounded-2xl gap-3 bg-indigo-600 hover:bg-indigo-500 text-white border-none"
+                    >
+                       <Compass className="h-4 w-4" />
+                       Restart Tour
+                    </Button>
                  </div>
               </CardContent>
            </Card>
