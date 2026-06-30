@@ -264,11 +264,11 @@ export default function TenantDashboard() {
                     )}>
                       {isCriticallyEmpty ? <AlertCircle className="h-5 w-5" /> : <Package className="h-5 w-5" />}
                     </div>
-                    <div className="min-w-0">
-                      <div className="font-black text-xs uppercase tracking-widest text-foreground group-hover:text-red-400 transition-colors truncate max-w-[140px] sm:max-w-[170px]">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-black text-xs uppercase tracking-widest text-foreground group-hover:text-red-400 transition-colors truncate">
                         {prod.name}
                       </div>
-                      <div className="text-[9px] text-muted-foreground font-semibold uppercase tracking-widest mt-0.5 truncate max-w-[140px]">
+                      <div className="text-[9px] text-muted-foreground font-semibold uppercase tracking-widest mt-0.5 truncate">
                         Limit: {threshold} • SKU: {prod.sku || "N/A"}
                       </div>
                     </div>
@@ -348,13 +348,13 @@ export default function TenantDashboard() {
             onClick={() => navigate(kpi.href)}
           >
             <div className="absolute -inset-0.5 bg-gradient-to-br from-emerald-500/20 to-emerald-900/10 rounded-[2.2rem] opacity-0 group-hover:opacity-100 transition duration-500" />
-            <Card className="border-border shadow-md relative overflow-hidden bg-card/40 backdrop-blur-xl p-5 sm:p-6 rounded-[2.2rem] hover:translate-y-[-4px] transition-all duration-300">
-              <div className="flex justify-between items-start mb-4 sm:mb-6">
-                 <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform duration-500 border border-border">
+            <Card className="border-border shadow-md relative overflow-hidden bg-card/40 backdrop-blur-xl p-5 sm:p-6 rounded-[2.2rem] hover:translate-y-[-4px] transition-all duration-300 min-w-0">
+              <div className="flex justify-between items-start mb-4 sm:mb-6 gap-2">
+                 <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform duration-500 border border-border shrink-0">
                    <kpi.icon className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
                  </div>
                  <Badge className={cn(
-                   "text-[9px] font-black uppercase tracking-widest h-6 border-none",
+                   "text-[9px] font-black uppercase tracking-widest h-6 border-none shrink-0",
                    kpi.status === 'optimal' ? "bg-emerald-500/10 text-emerald-500" :
                    kpi.status === 'positive' ? "bg-blue-500/10 text-blue-500" :
                    "bg-muted text-muted-foreground"
@@ -362,9 +362,9 @@ export default function TenantDashboard() {
                    {kpi.trend}
                  </Badge>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{kpi.label}</p>
-                <h3 className="text-3xl sm:text-4xl font-black italic tracking-tighter text-foreground">{kpi.value}</h3>
+              <div className="space-y-1 min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 truncate">{kpi.label}</p>
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black italic tracking-tighter text-foreground truncate">{kpi.value}</h3>
               </div>
             </Card>
           </motion.div>
@@ -372,7 +372,7 @@ export default function TenantDashboard() {
       </div>
 
       <div className="space-y-6 sm:space-y-10">
-          <Card data-tour="sales-chart" className="border-border shadow-md overflow-hidden flex flex-col p-3 sm:p-4 min-h-[400px] sm:min-h-[500px] bg-card/40 backdrop-blur-xl rounded-[2.2rem] sm:rounded-[2.5rem]">
+          <Card data-tour="sales-chart" className="border-border shadow-md overflow-hidden flex flex-col p-3 sm:p-4 min-h-[400px] sm:min-h-[500px] bg-card/40 backdrop-blur-xl rounded-[2.2rem] sm:rounded-[2.5rem] min-w-0">
             <CardHeader className="px-4 sm:px-8 pt-4 sm:pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1 sm:space-y-2">
                 <CardTitle className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic text-foreground">Weekly Sales Graph</CardTitle>
@@ -389,7 +389,7 @@ export default function TenantDashboard() {
             </CardHeader>
             <CardContent className="flex-1 px-2 sm:px-4 pb-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart data={salesData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="oklch(0.65 0.2 165)" stopOpacity={0.2}/>
@@ -438,7 +438,7 @@ export default function TenantDashboard() {
 
           {/* Top Products & Payment Breakdown */}
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
+            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem] overflow-hidden min-w-0">
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
                 <div className="space-y-1">
                   <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground">Top Selling Products</CardTitle>
@@ -472,7 +472,7 @@ export default function TenantDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
+            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem] overflow-hidden min-w-0">
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
                 <div className="space-y-1">
                   <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground">Payment Methods (7 Days)</CardTitle>
@@ -516,9 +516,9 @@ export default function TenantDashboard() {
 
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             {/* Recent Sales Section */}
-            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
+            <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem] overflow-hidden min-w-0">
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 flex flex-row items-center justify-between">
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground">Recent Sales</CardTitle>
                   <CardDescription className="text-xs font-medium text-muted-foreground">Latest transactions made in the shop</CardDescription>
                 </div>
@@ -531,16 +531,16 @@ export default function TenantDashboard() {
                      className="group flex items-center justify-between p-4 rounded-2xl border border-border/60 hover:bg-secondary/40 hover:border-emerald-500/20 transition-all cursor-pointer"
                      onClick={() => navigate('/receipts')}
                    >
-                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 sm:h-11 sm:w-12 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground group-hover:text-emerald-500 transition-colors border border-border">
-                           <CheckCircle2 className="h-4.5 w-4.5" />
+                     <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-10 w-10 sm:h-11 sm:w-12 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground group-hover:text-emerald-500 transition-colors border border-border shrink-0">
+                           <CheckCircle2 className="h-4 w-4" />
                         </div>
-                        <div>
-                           <div className="font-black text-xs uppercase tracking-widest text-foreground">{tx.productName}</div>
-                           <div className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">{tx.cashierName} • {tx.paymentMethod}</div>
+                        <div className="min-w-0">
+                           <div className="font-black text-xs uppercase tracking-widest text-foreground truncate">{tx.productName}</div>
+                           <div className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5 truncate">{tx.cashierName} • {tx.paymentMethod}</div>
                         </div>
                      </div>
-                     <div className="text-right">
+                     <div className="text-right shrink-0">
                         <div className="text-base font-black italic tracking-tighter text-emerald-500">₵ {tx.amount.toLocaleString()}</div>
                         <Badge variant="outline" className="text-[8px] h-5 font-black uppercase tracking-widest border-none px-2 bg-emerald-500/10 text-emerald-500">Done</Badge>
                      </div>
@@ -558,9 +558,9 @@ export default function TenantDashboard() {
             </Card>
 
             {/* Low Stock Watch Section */}
-            <Card data-tour="low-stock" className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem]">
+            <Card data-tour="low-stock" className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem] overflow-hidden min-w-0">
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 flex flex-row items-center justify-between">
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <CardTitle className="text-lg sm:text-xl font-black uppercase tracking-tighter italic text-foreground">Low Stock Warnings</CardTitle>
                   <CardDescription className="text-xs font-medium text-muted-foreground">Products running out of stock soon</CardDescription>
                 </div>
@@ -570,16 +570,16 @@ export default function TenantDashboard() {
                  {lowStock.length > 0 ? (
                    lowStock.map((prod) => (
                     <div key={prod.id} className="group flex items-center justify-between p-4 rounded-2xl border border-border/60 hover:bg-secondary/40 hover:border-red-500/20 transition-all cursor-pointer" onClick={() => navigate('/inventory')}>
-                      <div className="flex items-center gap-3">
-                         <div className="h-10 w-10 sm:h-11 sm:h-12 rounded-xl bg-secondary flex items-center justify-center text-red-500 border border-border">
-                            <Package className="h-4.5 w-4.5" />
+                      <div className="flex items-center gap-3 min-w-0">
+                         <div className="h-10 w-10 sm:h-11 sm:w-12 rounded-xl bg-secondary flex items-center justify-center text-red-500 border border-border shrink-0">
+                            <Package className="h-4 w-4" />
                          </div>
-                         <div>
-                            <div className="font-black text-xs uppercase tracking-widest text-foreground">{prod.name}</div>
-                            <div className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">{prod.category || 'General'}</div>
+                         <div className="min-w-0">
+                            <div className="font-black text-xs uppercase tracking-widest text-foreground truncate">{prod.name}</div>
+                            <div className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5 truncate">{prod.category || 'General'}</div>
                          </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                          <div className="text-base font-black italic tracking-tighter text-red-400">{prod.stock_quantity}</div>
                          <div className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Units Left</div>
                       </div>
