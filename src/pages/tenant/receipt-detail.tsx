@@ -66,7 +66,9 @@ export default function ReceiptDetailPage() {
          // 1. Try API
         try {
            const { apiClient } = await import("@/lib/api-client");
-           const response = await apiClient.get(`/api/sales/${receiptId}`);
+           const response = await apiClient.get(`/api/sales/${receiptId}`, {
+             headers: { 'X-Skip-Global-Toast': 'true' }
+           });
            const tx = response.data?.data || response.data;
 
            if (tx) {
@@ -113,6 +115,48 @@ export default function ReceiptDetailPage() {
            }
          } catch (err) {
            console.warn("Could not query API for receipt details: ", err);
+         }
+
+         // 2. Fallback: Try IndexedDB for offline receipts
+         if (!dbReceipt) {
+           try {
+             const { openDB } = await import('idb');
+             const idb = await openDB('NEXA_POS_KEEPER', 2);
+             if (idb && idb.objectStoreNames.contains('sales_queue')) {
+               const offlineTx = await idb.get('sales_queue', receiptId);
+               if (offlineTx) {
+                 const fetchedItems: ReceiptItem[] = (offlineTx.items || []).map((it: any) => ({
+                   name: it.name || "Retail Item",
+                   qty: it.quantity || 1,
+                   price: Number(it.price) || 0,
+                   total: Number(it.total) || Number(it.price) * Number(it.quantity) || 0,
+                   id: it.id ? `ITM-${it.id}` : undefined
+                 }));
+
+                 dbReceipt = {
+                   id: offlineTx.id,
+                   shopName: "OBOY YANKEE ENTERPRISE",
+                   customerName: "Walk-in Customer",
+                   cashierName: "Offline Local Terminal",
+                   dateString: new Date(offlineTx.created_at).toLocaleString(),
+                   items: fetchedItems.length > 0 ? fetchedItems : [{ name: "General Store Items", qty: 1, price: Number(offlineTx.total_amount) || 0, total: Number(offlineTx.total_amount) || 0, id: "GEN-01" }],
+                   subtotal: Number(offlineTx.subtotal) || Number(offlineTx.total_amount) || 0,
+                   tax: Number(offlineTx.tax_amount) || 0,
+                   nhilAmount: 0,
+                   getfundAmount: 0,
+                   vatAmount: 0,
+                   covidHrlAmount: 0,
+                   discount: Number(offlineTx.discount_amount) || 0,
+                   total: Number(offlineTx.total_amount) || 0,
+                   paymentMethod: offlineTx.payment_method || "Cash",
+                   isCredit: offlineTx.is_credit || false,
+                   receiptNumber: offlineTx.id,
+                 };
+               }
+             }
+           } catch (idbErr) {
+             console.warn("IndexedDB fallback for receipt failed: ", idbErr);
+           }
          }
 
          setReceiptData(dbReceipt);
