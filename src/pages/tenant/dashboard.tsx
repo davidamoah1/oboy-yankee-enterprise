@@ -253,9 +253,9 @@ export default function TenantDashboard() {
                 <div 
                   key={prod.id} 
                   onClick={() => navigate('/inventory')}
-                  className="group relative flex items-center justify-between p-4 rounded-2xl border border-white/[0.03] bg-black/20 hover:bg-black/30 hover:border-red-500/30 transition-all cursor-pointer"
+                  className="group relative flex items-center justify-between p-4 rounded-2xl border border-white/[0.03] bg-black/20 hover:bg-black/30 hover:border-red-500/30 transition-all cursor-pointer min-w-0 overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className={cn(
                       "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
                       isCriticallyEmpty 
@@ -321,7 +321,7 @@ export default function TenantDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
             onClick={() => navigate(action.href)}
-            className="flex flex-col items-center justify-center p-4 sm:p-6 rounded-[2.2rem] bg-card/40 backdrop-blur-xl border border-border hover:bg-muted/80 transition-all group gap-3 sm:gap-4 shadow-sm"
+            className="flex flex-col items-center justify-center p-4 sm:p-6 rounded-[2.2rem] bg-card/40 backdrop-blur-xl border border-border hover:bg-muted/80 transition-all group gap-3 sm:gap-4 shadow-sm min-w-0"
           >
             <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform", action.color)}>
               <action.icon className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -344,7 +344,7 @@ export default function TenantDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="group relative cursor-pointer"
+            className="group relative cursor-pointer min-w-0"
             onClick={() => navigate(kpi.href)}
           >
             <div className="absolute -inset-0.5 bg-gradient-to-br from-emerald-500/20 to-emerald-900/10 rounded-[2.2rem] opacity-0 group-hover:opacity-100 transition duration-500" />
@@ -371,7 +371,7 @@ export default function TenantDashboard() {
         ))}
       </div>
 
-      <div className="space-y-6 sm:space-y-10">
+      <div className="space-y-6 sm:space-y-10 min-w-0">
           <Card data-tour="sales-chart" className="border-border shadow-md overflow-hidden flex flex-col p-3 sm:p-4 min-h-[400px] sm:min-h-[500px] bg-card/40 backdrop-blur-xl rounded-[2.2rem] sm:rounded-[2.5rem] min-w-0">
             <CardHeader className="px-4 sm:px-8 pt-4 sm:pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1 sm:space-y-2">
@@ -437,7 +437,7 @@ export default function TenantDashboard() {
           </Card>
 
           {/* Top Products & Payment Breakdown */}
-          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 min-w-0">
             <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem] overflow-hidden min-w-0">
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
                 <div className="space-y-1">
@@ -514,7 +514,7 @@ export default function TenantDashboard() {
             </Card>
           </div>
 
-          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 min-w-0">
             {/* Recent Sales Section */}
             <Card className="border-border shadow-md flex flex-col p-3 sm:p-4 bg-card/40 backdrop-blur-xl rounded-[2.2rem] overflow-hidden min-w-0">
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 flex flex-row items-center justify-between">
