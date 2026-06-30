@@ -154,7 +154,7 @@ export default function TenantDashboard() {
   }, []);
 
   return (
-    <div className="space-y-6 sm:space-y-10 pb-20">
+    <div className="space-y-6 sm:space-y-10 pb-20 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 sm:gap-10">
         <div className="flex flex-col md:flex-row justify-between flex-1 gap-4 w-full">

@@ -221,7 +221,7 @@ export function TenantLayout() {
               "flex-1 bg-secondary/10",
               isPOSPage 
                 ? "p-1.5 sm:p-3 lg:p-6 pb-20 lg:pb-6 no-scrollbar overflow-hidden flex flex-col min-h-0" 
-                : "overflow-auto p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8 custom-scrollbar"
+                : "overflow-y-auto overflow-x-hidden p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8 custom-scrollbar"
             )}
           >
             <TenantSecurityWrapper>
