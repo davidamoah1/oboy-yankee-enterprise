@@ -157,7 +157,7 @@ export default function TenantDashboard() {
     <div className="space-y-6 sm:space-y-10 pb-20 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 sm:gap-10">
-        <div className="flex flex-col md:flex-row justify-between flex-1 gap-4 w-full">
+        <div className="flex flex-col md:flex-row justify-between flex-1 gap-4 w-full lg:w-auto min-w-0">
           <div className="space-y-2">
             <h1 className="text-3xl xs:text-5xl sm:text-7xl font-black tracking-tighter uppercase italic py-1 leading-none text-foreground">
               Shop <span className="opacity-35">Dashboard</span>
@@ -183,7 +183,7 @@ export default function TenantDashboard() {
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto shrink-0">
           <Button 
             data-tour="start-selling"
             className="w-full sm:w-auto rounded-2xl h-12 sm:h-14 px-6 sm:px-8 gap-3 font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/10 bg-emerald-500 hover:bg-emerald-400 text-black group transition-all" 
