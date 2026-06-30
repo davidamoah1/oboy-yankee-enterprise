@@ -1,23 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { 
-  Search, 
-  Filter, 
-  Terminal, 
-  Shield, 
-  AlertCircle, 
-  Info, 
-  ShieldAlert,
+import {
+  Search,
+  Filter,
+  Activity,
   ChevronLeft,
   ChevronRight,
-  Download,
-  Trash2,
   Clock,
-  Globe,
   Database,
   RefreshCcw,
   User,
-  Building2,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -50,7 +42,6 @@ interface ActivityLogEntry {
   metadata: any;
   createdAt: string;
   user: { id: string; fullName: string; email: string; role: string } | null;
-  company: { id: string; name: string } | null;
 }
 
 const ACTION_FILTERS = [
@@ -59,7 +50,7 @@ const ACTION_FILTERS = [
   "RETURN_CREATE", "INVOICE_CREATE", "Z_REPORT_CREATE", "CREDIT_PAYMENT", "PROFILE_UPDATE", "PASSWORD_CHANGE",
 ];
 
-export default function AdminLogsPage() {
+export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -77,7 +68,7 @@ export default function AdminLogsPage() {
       params.set("limit", String(limit));
       if (actionFilter !== "all") params.set("action", actionFilter);
 
-      const res = await apiClient.get(`/api/activity-logs/all?${params.toString()}`);
+      const res = await apiClient.get(`/api/activity-logs?${params.toString()}`);
       const data = res.data?.data || res.data;
       setLogs(Array.isArray(data) ? data : []);
       setTotal(res.data?.total || 0);
@@ -106,8 +97,7 @@ export default function AdminLogsPage() {
       log.description?.toLowerCase().includes(q) ||
       log.action?.toLowerCase().includes(q) ||
       log.user?.fullName?.toLowerCase().includes(q) ||
-      log.user?.email?.toLowerCase().includes(q) ||
-      log.company?.name?.toLowerCase().includes(q)
+      log.user?.email?.toLowerCase().includes(q)
     );
   }, [logs, search]);
 
@@ -120,18 +110,18 @@ export default function AdminLogsPage() {
   };
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-24">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-24">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 bg-slate-900/40 backdrop-blur-xl p-10 rounded-[40px] border border-white/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-5">
-           <Terminal className="h-32 w-32 rotate-12 text-slate-500" />
+           <Activity className="h-32 w-32 rotate-12 text-slate-500" />
         </div>
         <div className="space-y-3 relative z-10">
            <div className="flex items-center gap-3 mb-2">
               <div className="h-6 w-1 bg-slate-400 rounded-full" />
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Activity Monitoring</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Audit Trail</span>
            </div>
-           <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none text-slate-100">Server Logs</h1>
-           <p className="text-slate-500 font-bold text-sm max-w-lg">Real-time record of all system activities, security checks, and server updates.</p>
+           <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none text-slate-100">Activity Logs</h1>
+           <p className="text-slate-500 font-bold text-sm max-w-lg">Track every action performed by your team — sales, inventory changes, customer updates, and more.</p>
         </div>
         <div className="relative z-10 w-full lg:w-auto flex flex-col sm:flex-row gap-4">
             <Button variant="outline" onClick={handleRefresh} className="w-full sm:w-auto h-14 px-8 rounded-2xl border-white/10 font-black uppercase tracking-widest text-[10px] gap-3 bg-white/5 hover:bg-white/10 transition-all text-slate-300">
@@ -140,11 +130,11 @@ export default function AdminLogsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          {[
            { label: "Total Activities", val: String(total), icon: Database, color: "text-primary" },
-           { label: "Current Page", val: `${currentPage}/${totalPages || 1}`, icon: Globe, color: "text-blue-500" },
-           { label: "Action Types", val: String(ACTION_FILTERS.length - 1), icon: ShieldAlert, color: "text-amber-500" },
+           { label: "Current Page", val: `${currentPage}/${totalPages || 1}`, icon: Clock, color: "text-blue-500" },
+           { label: "Action Types", val: String(ACTION_FILTERS.length - 1), icon: Activity, color: "text-amber-500" },
          ].map((stat, i) => (
            <Card key={i} className="border-none shadow-2xl bg-slate-900/40 backdrop-blur-xl rounded-[30px] border border-white/5 group hover:border-primary/20 transition-all overflow-hidden relative p-8">
               <div className="flex items-center justify-between">
@@ -165,11 +155,11 @@ export default function AdminLogsPage() {
           <div className="flex flex-col xl:flex-row items-center justify-between gap-6">
             <div className="relative w-full xl:w-96">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
-              <Input 
-                placeholder="Search logs by ID or message..." 
+              <Input
+                placeholder="Search by user, action, or description..."
                 className="h-12 pl-12 bg-black/40 border-white/5 text-slate-200 placeholder:text-slate-700 font-bold italic tracking-wide rounded-2xl focus-visible:ring-primary/20"
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <div className="flex items-center gap-3 w-full xl:w-auto">
@@ -187,14 +177,6 @@ export default function AdminLogsPage() {
                     ))}
                   </DropdownMenuContent>
                </DropdownMenu>
-
-               <Button 
-                 variant="outline" 
-                 onClick={() => toast.info("Export feature coming soon")}
-                 className="h-12 px-8 rounded-2xl border-white/10 font-bold text-[10px] uppercase tracking-widest gap-3 bg-white/5 hover:bg-white/10 transition-all text-slate-400"
-               >
-                  <Download className="h-4 w-4" /> Export
-               </Button>
             </div>
           </div>
         </CardHeader>
@@ -205,7 +187,6 @@ export default function AdminLogsPage() {
                 <TableRow className="border-none hover:bg-transparent">
                   <TableHead className="h-14 px-8 text-[10px] uppercase font-black tracking-[0.2em] text-slate-500">Action</TableHead>
                   <TableHead className="h-14 px-8 text-[10px] uppercase font-black tracking-[0.2em] text-slate-500">User</TableHead>
-                  <TableHead className="h-14 px-8 text-[10px] uppercase font-black tracking-[0.2em] text-slate-500">Company</TableHead>
                   <TableHead className="h-14 px-8 text-[10px] uppercase font-black tracking-[0.2em] text-slate-500">Description</TableHead>
                   <TableHead className="h-14 px-8 text-[10px] uppercase font-black tracking-[0.2em] text-slate-500 text-right">Time</TableHead>
                 </TableRow>
@@ -213,14 +194,14 @@ export default function AdminLogsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-20 text-center">
+                    <TableCell colSpan={4} className="py-20 text-center">
                       <Loader2 className="h-8 w-8 text-primary animate-spin mx-auto" />
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 mt-4">Loading activity logs...</p>
                     </TableCell>
                   </TableRow>
                 ) : filteredLogs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-20 text-center">
+                    <TableCell colSpan={4} className="py-20 text-center">
                       <Database className="h-12 w-12 text-slate-700 mx-auto mb-4" />
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">No activity logs found</p>
                     </TableCell>
@@ -228,16 +209,16 @@ export default function AdminLogsPage() {
                 ) : (
                 <AnimatePresence mode="popLayout">
                   {filteredLogs.map((log, i) => (
-                    <motion.tr 
-                      key={log.id} 
+                    <motion.tr
+                      key={log.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                       className="border-b border-white/5 last:border-none group hover:bg-white/[0.02] transition-colors"
                     >
                       <TableCell className="px-8 py-4">
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className={cn(
                             "font-black uppercase tracking-[0.2em] text-[8px] px-2 h-5 rounded-md",
                             getActionColor(log.action)
@@ -261,16 +242,6 @@ export default function AdminLogsPage() {
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">System</span>
                         )}
                       </TableCell>
-                      <TableCell className="px-8 py-4">
-                        {log.company ? (
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-3 w-3 text-slate-600" />
-                            <span className="text-xs font-bold text-slate-400">{log.company.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">—</span>
-                        )}
-                      </TableCell>
                       <TableCell className="px-8 py-4 max-w-md">
                         <p className="text-xs font-bold text-slate-300 leading-relaxed">
                            {log.description || log.action}
@@ -288,16 +259,16 @@ export default function AdminLogsPage() {
               </TableBody>
             </Table>
           </div>
-          
+
           {/* Pagination */}
           <div className="p-8 border-t border-white/5 flex items-center justify-between bg-white/[0.01]">
              <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 italic">
                 {total} total activities
              </p>
              <div className="flex items-center gap-2">
-                <Button 
-                   variant="outline" 
-                   size="icon" 
+                <Button
+                   variant="outline"
+                   size="icon"
                    className="h-10 w-10 rounded-xl border-white/5 bg-white/5"
                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                    disabled={currentPage === 1}
@@ -308,9 +279,9 @@ export default function AdminLogsPage() {
                    <span className="text-[10px] font-black uppercase text-slate-500">Page</span>
                    <span className="text-[10px] font-black uppercase text-primary italic">{currentPage} / {totalPages || 1}</span>
                 </div>
-                <Button 
-                   variant="outline" 
-                   size="icon" 
+                <Button
+                   variant="outline"
+                   size="icon"
                    className="h-10 w-10 rounded-xl border-white/5 bg-white/5"
                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                    disabled={currentPage >= totalPages}
@@ -321,10 +292,6 @@ export default function AdminLogsPage() {
           </div>
         </CardContent>
       </Card>
-      
-      <div className="flex items-center justify-center p-12 opacity-10">
-         <Shield className="h-32 w-32 text-slate-500" />
-      </div>
     </div>
   );
 }

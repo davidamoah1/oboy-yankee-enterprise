@@ -129,6 +129,19 @@ function cleanAILog(label: string, error: any) {
   }
 }
 
+// ─────────────────────────────────────────────
+// Activity Logging Helper
+// ─────────────────────────────────────────────
+async function logActivity(userId: string | null, companyId: string, action: string, description?: string, metadata?: any) {
+  try {
+    await prisma.activityLog.create({
+      data: { userId, companyId, action, description, metadata: metadata || undefined },
+    });
+  } catch (err: any) {
+    logger.warn(`[ACTIVITY LOG] Failed to record activity: ${err.message}`);
+  }
+}
+
 // Enable trust proxy for express-rate-limit to work correctly in Cloud Run/Proxies
 app.set('trust proxy', 1);
 
@@ -512,6 +525,8 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
         data: { lastLoginAt: new Date() },
       });
 
+      await logActivity(user.id, user.companyId, "LOGIN", `User ${user.fullName} (${user.email}) logged in`);
+
       const accessToken = generateAccessToken(user.id, user.role, user.companyId);
       const refreshToken = generateRefreshToken(user.id);
 
@@ -695,6 +710,7 @@ app.get("/api/auth/me", requireAuth, async (req: any, res) => {
 app.post("/api/auth/logout", requireAuth, async (req: any, res) => {
   try {
     logger.info(`[AUTH LOGOUT] User ${req.user.userId} logged out.`);
+    await logActivity(req.user.userId, req.user.companyId, "LOGOUT", `User logged out`);
     res.json({ success: true, message: "Logged out successfully." });
   } catch (error: any) {
     res.status(500).json({ error: "Logout failed." });
@@ -908,6 +924,8 @@ app.post("/api/users/invite", requireAuth, requirePermission("manage_users"), ad
       tempPassword,
       staffId: newUser.id,
     });
+
+    await logActivity(req.user.userId, req.user.companyId, "STAFF_INVITE", `Invited staff member "${fullName}" (${email}) as ${role}`, { newUserId: newUser.id, role });
   } catch (error: any) {
     logger.error('[STAFF INVITE ERROR]', { error: error.message });
     res.status(500).json({ error: "Failed to invite staff member." });
@@ -955,6 +973,8 @@ app.delete("/api/users/:id", requireAuth, requirePermission("manage_users"), asy
       data: { deletedAt: new Date(), status: "suspended" },
     });
 
+    await logActivity(req.user.userId, req.user.companyId, "STAFF_DELETE", `Removed staff member "${user.fullName}" (${user.email})`, { deletedUserId: req.params.id });
+
     res.json({ success: true, message: "Staff member removed." });
   } catch (error: any) {
     logger.error("[USER DELETE ERROR]", { error: error.message });
@@ -996,6 +1016,7 @@ app.put("/api/auth/profile", requireAuth, async (req: any, res) => {
       data,
       select: { id: true, email: true, fullName: true, phone: true, avatarUrl: true, role: true },
     });
+    await logActivity(req.user.userId, req.user.companyId, "PROFILE_UPDATE", `Updated profile information`, { userId: user.id });
     res.json(user);
   } catch (error: any) {
     logger.error("[PROFILE UPDATE ERROR]", { error: error.message });
@@ -1022,6 +1043,8 @@ app.put("/api/auth/password", requireAuth, async (req: any, res) => {
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({ where: { id: req.user.userId }, data: { passwordHash } });
+
+    await logActivity(req.user.userId, req.user.companyId, "PASSWORD_CHANGE", `Changed account password`);
 
     res.json({ success: true, message: "Password changed successfully." });
   } catch (error: any) {
@@ -1138,6 +1161,8 @@ app.post("/api/invoices", requireAuth, async (req: any, res) => {
       },
     });
 
+    await logActivity(req.user.userId, req.user.companyId, "INVOICE_CREATE", `Created invoice ${invoice.invoiceNumber} for ${client_name} (₵${amount})`, { invoiceId: invoice.id });
+
     res.json(invoice);
   } catch (error: any) {
     logger.error("[INVOICE CREATE ERROR]", { error: error.message });
@@ -1238,6 +1263,7 @@ app.post("/api/products", requireAuth, requirePermission("manage_products"), asy
         companyId: req.user.companyId,
       },
     });
+    await logActivity(req.user.userId, req.user.companyId, "PRODUCT_CREATE", `Created product "${name}"`, { productId: product.id, sku });
     res.json(product);
   } catch (error: any) {
     logger.error("[PRODUCT CREATE ERROR]", { error: error.message });
@@ -1274,6 +1300,7 @@ app.put("/api/products/:id", requireAuth, requirePermission("manage_products"), 
       where: { id: req.params.id },
       data,
     });
+    await logActivity(req.user.userId, req.user.companyId, "PRODUCT_UPDATE", `Updated product "${name || product.id}"`, { productId: req.params.id });
     res.json(product);
   } catch (error: any) {
     logger.error("[PRODUCT UPDATE ERROR]", { error: error.message });
@@ -1291,6 +1318,7 @@ app.delete("/api/products/:id", requireAuth, requirePermission("manage_products"
       where: { id: req.params.id },
       data: { deletedAt: new Date(), isActive: false },
     });
+    await logActivity(req.user.userId, req.user.companyId, "PRODUCT_DELETE", `Deleted product ${req.params.id}`, { productId: req.params.id });
     res.json({ success: true });
   } catch (error: any) {
     logger.error("[PRODUCT DELETE ERROR]", { error: error.message });
@@ -1596,6 +1624,8 @@ app.post("/api/sales", requireAuth, async (req: any, res) => {
     // Send SMS receipt to customer (async, non-blocking, outside transaction)
     sendCustomerReceiptSMS(sale).catch(err => logger.error("[SMS] Post-sale SMS failed:", { error: err.message }));
 
+    await logActivity(req.user.userId, req.user.companyId, "SALE_CREATE", `Recorded sale ${sale.receiptNumber} for ₵${totalNum}`, { saleId: sale.id, receiptNumber, totalAmount: totalNum, paymentMethod, isCredit });
+
     res.json(sale);
   } catch (error: any) {
     logger.error("[SALE CREATE ERROR]", { error: error.message });
@@ -1721,6 +1751,8 @@ app.post("/api/returns", requireAuth, async (req: any, res) => {
       data: { status: "refunded" },
     });
 
+    await logActivity(req.user.userId, req.user.companyId, "RETURN_CREATE", `Processed return for sale ${sale.receiptNumber} — refund ₵${refundAmount}`, { saleId, returnId: returnRecord.id, refundAmount });
+
     res.json(returnRecord);
   } catch (error: any) {
     logger.error("[RETURN CREATE ERROR]", { error: error.message });
@@ -1821,6 +1853,8 @@ app.post("/api/credit-payments", requireAuth, async (req: any, res) => {
       });
     }
 
+    await logActivity(req.user.userId, req.user.companyId, "CREDIT_PAYMENT", `Recorded credit payment of ₵${amount} for sale ${sale.receiptNumber}`, { saleId, paymentId: payment.id, amount });
+
     res.json(payment);
   } catch (error: any) {
     logger.error("[CREDIT PAYMENT ERROR]", { error: error.message });
@@ -1917,6 +1951,8 @@ app.post("/api/z-reports", requireAuth, async (req: any, res) => {
 
     // Send daily sales summary SMS to shop owner (async, non-blocking)
     sendDailySummarySMS(zReport, companyId).catch(err => logger.error("[SMS] Z-Report SMS failed:", { error: err.message }));
+
+    await logActivity(req.user.userId, req.user.companyId, "Z_REPORT_CREATE", `Generated ${reportType || "Z-Report"} ${reportNumber} — total sales ₵${totalSales}`, { zReportId: zReport.id, reportNumber });
 
     res.json(zReport);
   } catch (error: any) {
@@ -2328,6 +2364,7 @@ app.post("/api/customers", requireAuth, async (req: any, res) => {
         companyId: req.user.companyId,
       },
     });
+    await logActivity(req.user.userId, req.user.companyId, "CUSTOMER_CREATE", `Added customer "${name}"`, { customerId: customer.id });
     res.json(customer);
   } catch (error: any) {
     res.status(500).json({ error: "Failed to create customer." });
@@ -2349,6 +2386,7 @@ app.put("/api/customers/:id", requireAuth, async (req: any, res) => {
     if (creditLimit !== undefined) data.creditLimit = creditLimit ? parseFloat(creditLimit) : null;
     if (isActive !== undefined) data.isActive = isActive;
     const updated = await prisma.customer.update({ where: { id: req.params.id }, data });
+    await logActivity(req.user.userId, req.user.companyId, "CUSTOMER_UPDATE", `Updated customer "${updated.name}"`, { customerId: req.params.id });
     res.json(updated);
   } catch (error: any) {
     res.status(500).json({ error: "Failed to update customer." });
@@ -2362,6 +2400,7 @@ app.delete("/api/customers/:id", requireAuth, async (req: any, res) => {
       return res.status(404).json({ error: "Customer not found." });
     }
     await prisma.customer.update({ where: { id: req.params.id }, data: { isActive: false } });
+    await logActivity(req.user.userId, req.user.companyId, "CUSTOMER_DELETE", `Deactivated customer "${customer.name}"`, { customerId: req.params.id });
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: "Failed to remove customer." });
@@ -3037,6 +3076,77 @@ app.post("/api/ai/ask", aiLimiter, async (req, res) => {
       degraded: true,
       text: answer
     });
+  }
+});
+
+// ─────────────────────────────────────────────
+// ACTIVITY LOG ROUTES
+// ─────────────────────────────────────────────
+
+// Company-level activity logs (for company admins/managers)
+app.get("/api/activity-logs", requireAuth, async (req: any, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const skip = (page - 1) * limit;
+    const action = req.query.action as string;
+
+    const where: any = { companyId: req.user.companyId };
+    if (action && action !== "all") where.action = { contains: action, mode: "insensitive" };
+
+    const [logs, total] = await Promise.all([
+      prisma.activityLog.findMany({
+        where,
+        include: {
+          user: { select: { id: true, fullName: true, email: true, role: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.activityLog.count({ where }),
+    ]);
+
+    res.json({ data: logs, total, page, limit, totalPages: Math.ceil(total / limit) });
+  } catch (error: any) {
+    logger.error("[ACTIVITY LOGS GET ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to fetch activity logs." });
+  }
+});
+
+// Super admin: all activity logs across all companies
+app.get("/api/activity-logs/all", requireAuth, async (req: any, res) => {
+  try {
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ error: "Access denied. Super admin only." });
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const skip = (page - 1) * limit;
+    const action = req.query.action as string;
+
+    const where: any = {};
+    if (action && action !== "all") where.action = { contains: action, mode: "insensitive" };
+
+    const [logs, total] = await Promise.all([
+      prisma.activityLog.findMany({
+        where,
+        include: {
+          user: { select: { id: true, fullName: true, email: true, role: true } },
+          company: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.activityLog.count({ where }),
+    ]);
+
+    res.json({ data: logs, total, page, limit, totalPages: Math.ceil(total / limit) });
+  } catch (error: any) {
+    logger.error("[ACTIVITY LOGS ALL GET ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to fetch activity logs." });
   }
 });
 

@@ -43,6 +43,7 @@ import CreditSalesPage from "./pages/tenant/credit-sales";
 import ReturnsPage from "./pages/tenant/returns";
 import ProfitAnalysisPage from "./pages/tenant/profit-analysis";
 import PromotionsPage from "./pages/tenant/promotions";
+import ActivityLogsPage from "./pages/tenant/activity-logs";
 
 import LoginPage from "./pages/auth/login";
 import ResetPasswordPage from "./pages/auth/reset-password";
@@ -129,6 +130,7 @@ export default function App() {
                 <Route path="/profit-analysis" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]}><ProfitAnalysisPage /></ProtectedRoute>} />
                 <Route path="/promotions" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER, UserRole.STORE_KEEPER]}><PromotionsPage /></ProtectedRoute>} />
                 <Route path="/support" element={<SupportPage />} />
+                <Route path="/activity-logs" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER]}><ActivityLogsPage /></ProtectedRoute>} />
               </Route>
 
               {/* Fallback */}
