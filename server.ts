@@ -1046,6 +1046,13 @@ app.post("/api/branches", requireAuth, requirePermission("manage_settings"), adm
     const { name, code, phone, address, city, region, managerName } = req.body;
     if (!name) return res.status(400).json({ error: "Branch name is required." });
 
+    const branchCount = await prisma.branch.count({
+      where: { companyId: req.user.companyId, isActive: true },
+    });
+    if (branchCount >= 5) {
+      return res.status(400).json({ error: "Maximum of 5 branches allowed. Deactivate an existing branch to add a new one." });
+    }
+
     const branch = await prisma.branch.create({
       data: {
         name,

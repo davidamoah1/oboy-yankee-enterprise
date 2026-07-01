@@ -23,6 +23,10 @@ export default function BranchesPage() {
     managerName: '',
   });
 
+  const activeBranchCount = branches.filter(b => b.isActive).length;
+  const MAX_BRANCHES = 5;
+  const atBranchLimit = activeBranchCount >= MAX_BRANCHES;
+
   const resetForm = () => {
     setForm({ name: '', code: '', phone: '', address: '', city: '', region: '', managerName: '' });
     setEditingBranch(null);
@@ -61,7 +65,8 @@ export default function BranchesPage() {
       resetForm();
       await refreshProfile();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save branch');
+      const msg = err.response?.data?.error || err.message || 'Failed to save branch';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -83,12 +88,17 @@ export default function BranchesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black italic uppercase tracking-tight">Branches</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your shop locations</p>
+          <p className="text-sm text-muted-foreground mt-1">Manage your shop locations ({activeBranchCount}/{MAX_BRANCHES} active)</p>
         </div>
-        <Button onClick={() => { resetForm(); setShowForm(true); }} className="gap-2 rounded-xl font-bold">
-          <Plus className="h-4 w-4" />
-          Add Branch
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <Button onClick={() => { resetForm(); setShowForm(true); }} disabled={atBranchLimit} className="gap-2 rounded-xl font-bold">
+            <Plus className="h-4 w-4" />
+            Add Branch
+          </Button>
+          {atBranchLimit && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">Maximum of {MAX_BRANCHES} branches reached</span>
+          )}
+        </div>
       </div>
 
       {showForm && (
