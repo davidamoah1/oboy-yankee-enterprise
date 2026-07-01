@@ -821,14 +821,14 @@ export default function InventoryPage() {
           </thead>
           <tbody>
             {filteredProducts.map((p) => {
-              const totalVal = p.price * (p.stock_quantity || 0);
+              const totalVal = Number(p.price) * (p.stock_quantity || 0);
               return (
                 <tr key={p.id} className="border-b border-gray-200 text-xs">
                   <td className="py-3 font-mono font-bold text-gray-700">{p.sku}</td>
                   <td className="py-3 font-bold text-gray-900">{p.name}</td>
                   <td className="py-3 text-gray-600">{p.category}</td>
                   <td className="py-3 text-right font-bold text-gray-800">{p.stock_quantity}</td>
-                  <td className="py-3 text-right font-semibold text-gray-800">₵{p.price.toFixed(2)}</td>
+                  <td className="py-3 text-right font-semibold text-gray-800">₵{Number(p.price).toFixed(2)}</td>
                   <td className="py-3 text-right font-bold text-gray-900">₵{totalVal.toFixed(2)}</td>
                 </tr>
               );

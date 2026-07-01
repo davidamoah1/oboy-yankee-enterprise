@@ -474,7 +474,7 @@ export function CsvImportDialog({ onSuccess }: CsvImportDialogProps) {
                       <TableCell className="font-mono text-xs">{row.sku}</TableCell>
                       <TableCell className="text-right font-black italic">
                         {row.isValid ? (
-                          `₵${row.price.toFixed(2)}`
+                          `₵${Number(row.price).toFixed(2)}`
                         ) : (
                           <span className="text-red-500/50">-</span>
                         )}

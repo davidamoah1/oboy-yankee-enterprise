@@ -52,6 +52,11 @@ export class APIClient {
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        // Attach active branch ID for multi-branch filtering
+        const activeBranchId = localStorage.getItem('activeBranchId');
+        if (activeBranchId && config.headers && !config.url?.startsWith('/api/auth/')) {
+          config.headers['x-branch-id'] = activeBranchId;
+        }
         return config;
       },
       (error) => Promise.reject(this.normalizeError(error))

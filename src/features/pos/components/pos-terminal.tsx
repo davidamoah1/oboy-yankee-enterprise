@@ -1164,7 +1164,7 @@ export function POSTerminal() {
                 <div className="space-y-2 font-mono text-[10px]">
                   <div className="flex justify-between text-[13px] font-black pt-2.5 border-t border-white/[0.05] text-emerald-400">
                     <span className="uppercase tracking-widest">Total</span>
-                    <span>₵{completedSale.total.toFixed(2)}</span>
+                    <span>₵{Number(completedSale.total).toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -1240,8 +1240,8 @@ export function POSTerminal() {
                           `*Date:* ${new Date(completedSale.date).toLocaleDateString()}\n\n` +
                           `*Items Purchased:* \n${completedSale.items.map((it: any) => `• ${it.product.name} (x${it.quantity}) - GH₵${(parseFloat(it.product.price) * it.quantity).toFixed(2)}`).join('\n')}\n` +
                           `=============================\n` +
-                          `*Subtotal:* GH₵${completedSale.subtotal.toFixed(2)}\n` +
-                          `*Total:* GH₵${completedSale.total.toFixed(2)}\n\n` +
+                          `*Subtotal:* GH₵${Number(completedSale.subtotal).toFixed(2)}\n` +
+                          `*Total:* GH₵${Number(completedSale.total).toFixed(2)}\n\n` +
                           `*Settlement:* ${completedSale.paymentMethod}\n\n` +
                           `Thank you for shopping with us! Digital Receipt link: ${window.location.origin}/receipts/${completedSale.saleId}`
                         );

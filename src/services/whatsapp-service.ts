@@ -50,14 +50,14 @@ class WhatsAppService {
   shareReceipt(phone: string, data: ReceiptData): string {
     const formattedPhone = this.formatGhanaPhone(phone);
     const itemsText = data.items
-      .map(item => `• ${item.name} x${item.quantity} - ₵${(item.quantity * item.price).toFixed(2)}`)
+      .map(item => `• ${item.name} x${item.quantity} - ₵${(item.quantity * Number(item.price)).toFixed(2)}`)
       .join('\n');
 
     const message = `*${data.businessName} - Official Receipt*\n` +
       `--------------------------------\n` +
       `*Order:* #${data.orderId}\n` +
       `*Customer:* ${data.customerName || 'Valued Customer'}\n` +
-      `*Total:* GH₵ ${data.total.toFixed(2)}\n` +
+      `*Total:* GH₵ ${Number(data.total).toFixed(2)}\n` +
       `*Payment:* ${data.paymentMethod.toUpperCase()}\n` +
       `--------------------------------\n` +
       `*Items:*\n${itemsText}\n\n` +
@@ -114,7 +114,7 @@ class WhatsAppService {
     const formattedPhone = this.formatGhanaPhone(phone);
     const message = `✅ *Payment Received - ${data.businessName}* ✅\n` +
       `--------------------------------\n` +
-      `*Amount:* GH₵ ${data.amount.toFixed(2)}\n` +
+      `*Amount:* GH₵ ${Number(data.amount).toFixed(2)}\n` +
       `*Channel:* ${data.method.toUpperCase()}\n` +
       `*Status:* Reconciled & Audited\n` +
       `*Audited Transaction ID:* ${data.transactionId}\n` +

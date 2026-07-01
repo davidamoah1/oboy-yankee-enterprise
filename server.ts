@@ -142,6 +142,20 @@ async function logActivity(userId: string | null, companyId: string, action: str
   }
 }
 
+/**
+ * Branch filter helper — returns the branchId to filter by.
+ * Admins can override with req.query.branchId or req.headers['x-branch-id'].
+ * Non-admins are restricted to their own branchId.
+ */
+function getBranchFilter(req: any): string | undefined {
+  const isAdmin = req.user.role === "super_admin" || req.user.role === "company_admin";
+  if (isAdmin) {
+    const override = req.query.branchId as string || req.headers['x-branch-id'] as string;
+    return override && override !== 'all' ? override : undefined;
+  }
+  return req.user.branchId || undefined;
+}
+
 // Enable trust proxy for express-rate-limit to work correctly in Cloud Run/Proxies
 app.set('trust proxy', 1);
 
@@ -323,8 +337,8 @@ if (!JWT_REFRESH_SECRET || JWT_REFRESH_SECRET.length < 32) {
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
 
-function generateAccessToken(userId: string, role: string, companyId: string): string {
-  return jwt.sign({ userId, role, companyId }, JWT_SECRET!, { expiresIn: ACCESS_TOKEN_EXPIRY });
+function generateAccessToken(userId: string, role: string, companyId: string, branchId?: string | null): string {
+  return jwt.sign({ userId, role, companyId, branchId: branchId || undefined }, JWT_SECRET!, { expiresIn: ACCESS_TOKEN_EXPIRY });
 }
 
 function generateRefreshToken(userId: string): string {
@@ -397,6 +411,7 @@ async function requireAuth(req: any, res: any, next: any) {
       userId: decoded.userId,
       role: decoded.role,
       companyId: decoded.companyId,
+      branchId: decoded.branchId || null,
     };
     next();
   } catch (err: any) {
@@ -527,7 +542,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
 
       await logActivity(user.id, user.companyId, "LOGIN", `User ${user.fullName} (${user.email}) logged in`);
 
-      const accessToken = generateAccessToken(user.id, user.role, user.companyId);
+      const accessToken = generateAccessToken(user.id, user.role, user.companyId, user.branchId);
       const refreshToken = generateRefreshToken(user.id);
 
       const permissions = collectUserPermissions(user);
@@ -544,6 +559,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
           role: user.role,
           status: user.status,
           companyId: user.companyId,
+          branchId: user.branchId,
           company: user.company,
           permissions,
         },
@@ -612,7 +628,7 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
       include: { company: true },
     });
 
-    const accessToken = generateAccessToken(user.id, user.role, user.companyId);
+    const accessToken = generateAccessToken(user.id, user.role, user.companyId, user.branchId);
     const refreshToken = generateRefreshToken(user.id);
 
     res.json({
@@ -653,14 +669,14 @@ app.post("/api/auth/refresh", async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, role: true, companyId: true, status: true, deletedAt: true },
+      select: { id: true, role: true, companyId: true, branchId: true, status: true, deletedAt: true },
     });
 
     if (!user || user.deletedAt || user.status === "suspended") {
       return res.status(401).json({ error: "Account is inactive or not found." });
     }
 
-    const accessToken = generateAccessToken(user.id, user.role, user.companyId);
+    const accessToken = generateAccessToken(user.id, user.role, user.companyId, user.branchId);
     const newRefreshToken = generateRefreshToken(user.id);
 
     res.json({ accessToken, refreshToken: newRefreshToken });
@@ -697,6 +713,7 @@ app.get("/api/auth/me", requireAuth, async (req: any, res) => {
       role: user.role,
       status: user.status,
       companyId: user.companyId,
+      branchId: user.branchId,
       company: user.company,
       permissions,
     });
@@ -849,6 +866,7 @@ app.post("/api/admin/invite-staff", requireAuth, requirePermission("manage_users
         phone: phone || null,
         status: "active",
         companyId: req.user.companyId,
+        branchId: req.body.branchId || null,
       },
     });
 
@@ -872,7 +890,7 @@ app.post("/api/admin/invite-staff", requireAuth, requirePermission("manage_users
 
 // Alias: staff invite — frontend calls /api/users/invite
 app.post("/api/users/invite", requireAuth, requirePermission("manage_users"), adminLimiter, async (req: any, res) => {
-  const { email, role, fullName, department, shift, phone, businessName } = req.body;
+  const { email, role, fullName, department, shift, phone, businessName, branchId } = req.body;
 
   if (!email || !role || !fullName) {
     return res.status(400).json({ error: "Email, role, and full name are required." });
@@ -896,6 +914,7 @@ app.post("/api/users/invite", requireAuth, requirePermission("manage_users"), ad
         phone: phone || null,
         status: "active",
         companyId: req.user.companyId,
+        branchId: branchId || null,
       },
     });
 
@@ -907,6 +926,7 @@ app.post("/api/users/invite", requireAuth, requirePermission("manage_users"), ad
         phone: phone || null,
         position: role,
         companyId: req.user.companyId,
+        branchId: branchId || null,
         userId: newUser.id,
       },
     }).catch(() => {});
@@ -999,6 +1019,100 @@ app.put("/api/company", requireAuth, requirePermission("manage_settings"), async
   } catch (error: any) {
     logger.error("[COMPANY UPDATE ERROR]", { error: error.message });
     res.status(500).json({ error: "Failed to update business info." });
+  }
+});
+
+// ─────────────────────────────────────────────
+// BRANCH (SHOP) MANAGEMENT ROUTES
+// ─────────────────────────────────────────────
+
+// List all branches for the company
+app.get("/api/branches", requireAuth, async (req: any, res) => {
+  try {
+    const branches = await prisma.branch.findMany({
+      where: { companyId: req.user.companyId },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json(branches);
+  } catch (error: any) {
+    logger.error("[BRANCHES LIST ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to fetch branches." });
+  }
+});
+
+// Create a new branch
+app.post("/api/branches", requireAuth, requirePermission("manage_settings"), adminLimiter, async (req: any, res) => {
+  try {
+    const { name, code, phone, address, city, region, managerName } = req.body;
+    if (!name) return res.status(400).json({ error: "Branch name is required." });
+
+    const branch = await prisma.branch.create({
+      data: {
+        name,
+        code: code || null,
+        phone: phone || null,
+        address: address || null,
+        city: city || null,
+        region: region || null,
+        managerName: managerName || null,
+        companyId: req.user.companyId,
+      },
+    });
+
+    await logActivity(req.user.userId, req.user.companyId, "BRANCH_CREATE", `Created branch "${name}"`, { branchId: branch.id });
+    res.json(branch);
+  } catch (error: any) {
+    logger.error("[BRANCH CREATE ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to create branch." });
+  }
+});
+
+// Update a branch
+app.put("/api/branches/:id", requireAuth, requirePermission("manage_settings"), async (req: any, res) => {
+  try {
+    const branch = await prisma.branch.findUnique({ where: { id: req.params.id } });
+    if (!branch || branch.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "Branch not found." });
+    }
+
+    const { name, code, phone, address, city, region, managerName, isActive } = req.body;
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (code !== undefined) data.code = code;
+    if (phone !== undefined) data.phone = phone;
+    if (address !== undefined) data.address = address;
+    if (city !== undefined) data.city = city;
+    if (region !== undefined) data.region = region;
+    if (managerName !== undefined) data.managerName = managerName;
+    if (isActive !== undefined) data.isActive = isActive;
+
+    const updated = await prisma.branch.update({ where: { id: req.params.id }, data });
+    await logActivity(req.user.userId, req.user.companyId, "BRANCH_UPDATE", `Updated branch "${name || branch.name}"`, { branchId: req.params.id });
+    res.json(updated);
+  } catch (error: any) {
+    logger.error("[BRANCH UPDATE ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to update branch." });
+  }
+});
+
+// Delete/deactivate a branch
+app.delete("/api/branches/:id", requireAuth, requirePermission("manage_settings"), async (req: any, res) => {
+  try {
+    const branch = await prisma.branch.findUnique({ where: { id: req.params.id } });
+    if (!branch || branch.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "Branch not found." });
+    }
+
+    await prisma.branch.update({
+      where: { id: req.params.id },
+      data: { isActive: false },
+    });
+
+    await logActivity(req.user.userId, req.user.companyId, "BRANCH_DELETE", `Deactivated branch "${branch.name}"`, { branchId: req.params.id });
+    res.json({ success: true, message: "Branch deactivated." });
+  } catch (error: any) {
+    logger.error("[BRANCH DELETE ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to deactivate branch." });
   }
 });
 
@@ -1217,8 +1331,11 @@ app.delete("/api/invoices/:id", requireAuth, async (req: any, res) => {
 // ─────────────────────────────────────────────
 app.get("/api/products", requireAuth, async (req: any, res) => {
   try {
+    const branchFilter = getBranchFilter(req);
+    const where: any = { companyId: req.user.companyId, deletedAt: null, isActive: true };
+    if (branchFilter) where.branchId = branchFilter;
     const products = await prisma.product.findMany({
-      where: { companyId: req.user.companyId, deletedAt: null, isActive: true },
+      where,
       select: {
         id: true,
         name: true,
@@ -1244,7 +1361,7 @@ app.get("/api/products", requireAuth, async (req: any, res) => {
 
 app.post("/api/products", requireAuth, requirePermission("manage_products"), async (req: any, res) => {
   try {
-    const { name, sku, barcode, category, categoryId, brandId, price, costPrice, stockQuantity, reorderLevel, expiryDate, description, unit, isActive } = req.body;
+    const { name, sku, barcode, category, categoryId, brandId, price, costPrice, stockQuantity, reorderLevel, expiryDate, description, unit, isActive, branchId } = req.body;
     const product = await prisma.product.create({
       data: {
         name,
@@ -1261,6 +1378,7 @@ app.post("/api/products", requireAuth, requirePermission("manage_products"), asy
         unit: unit || "piece",
         isActive: isActive !== false,
         companyId: req.user.companyId,
+        branchId: branchId || req.user.branchId || null,
       },
     });
     await logActivity(req.user.userId, req.user.companyId, "PRODUCT_CREATE", `Created product "${name}"`, { productId: product.id, sku });
@@ -1455,7 +1573,9 @@ app.get("/api/sales", requireAuth, async (req: any, res) => {
       const user = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { role: true } });
       const isAdmin = user?.role === "company_admin" || user?.role === "super_admin" || user?.role === "manager" || user?.role === "accountant";
 
+      const branchFilter = getBranchFilter(req);
       const where: any = { companyId: req.user.companyId };
+      if (branchFilter) where.branchId = branchFilter;
       if (!isAdmin) {
         where.userId = req.user.userId;
       }
@@ -1563,6 +1683,7 @@ app.post("/api/sales", requireAuth, async (req: any, res) => {
           customerPhone: customerPhone || null,
           notes: notes || null,
           companyId: req.user.companyId,
+          branchId: req.body.branchId || req.user.branchId || null,
           items: {
             create: items.map((item: any) => ({
               productId: item.productId,
@@ -1765,7 +1886,9 @@ app.get("/api/returns", requireAuth, async (req: any, res) => {
     const user = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { role: true } });
     const isAdmin = user?.role === "company_admin" || user?.role === "super_admin" || user?.role === "manager" || user?.role === "accountant";
 
+    const branchFilter = getBranchFilter(req);
     const where: any = { sale: { companyId: req.user.companyId } };
+    if (branchFilter) where.sale.branchId = branchFilter;
     if (!isAdmin) {
       where.sale.userId = req.user.userId;
     }
@@ -1789,7 +1912,9 @@ app.get("/api/credit-sales", requireAuth, async (req: any, res) => {
     const user = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { role: true } });
     const isAdmin = user?.role === "company_admin" || user?.role === "super_admin" || user?.role === "manager" || user?.role === "accountant";
 
+    const branchFilter = getBranchFilter(req);
     const where: any = { companyId: req.user.companyId, isCredit: true, creditSettled: false };
+    if (branchFilter) where.branchId = branchFilter;
     if (!isAdmin) {
       where.userId = req.user.userId;
     }
@@ -1881,17 +2006,22 @@ app.post("/api/z-reports", requireAuth, async (req: any, res) => {
   try {
     const { openingFloat, countedCash, notes, reportType } = req.body;
     const companyId = req.user.companyId;
+    const branchFilter = getBranchFilter(req);
 
     // Find the last closed Z-report to get opening time
+    const lastReportWhere: any = { companyId, status: "closed" };
+    if (branchFilter) lastReportWhere.branchId = branchFilter;
     const lastReport = await prisma.zReport.findFirst({
-      where: { companyId, status: "closed" },
+      where: lastReportWhere,
       orderBy: { closingTime: "desc" },
     });
     const openingTime = lastReport ? lastReport.closingTime : new Date(0);
 
     // Aggregate sales since last Z-report
+    const salesWhere: any = { companyId, createdAt: { gte: openingTime }, status: "completed" };
+    if (branchFilter) salesWhere.branchId = branchFilter;
     const sales = await prisma.sale.findMany({
-      where: { companyId, createdAt: { gte: openingTime }, status: "completed" },
+      where: salesWhere,
     });
 
     const pm = (s: any) => String(s.paymentMethod || "").toLowerCase();
@@ -1903,13 +2033,17 @@ app.post("/api/z-reports", requireAuth, async (req: any, res) => {
     const totalProfit = sales.reduce((sum, s) => sum + Number(s.profitAmount), 0);
     const totalTax = sales.reduce((sum, s) => sum + Number(s.taxAmount), 0);
 
+    const refundsWhere: any = { sale: { companyId }, createdAt: { gte: openingTime } };
+    if (branchFilter) refundsWhere.sale.branchId = branchFilter;
     const refunds = await prisma.return.findMany({
-      where: { sale: { companyId }, createdAt: { gte: openingTime } },
+      where: refundsWhere,
     });
     const totalRefunds = refunds.reduce((sum, r) => sum + Number(r.totalAmount), 0);
 
+    const expensesWhere: any = { companyId, date: { gte: openingTime } };
+    if (branchFilter) expensesWhere.branchId = branchFilter;
     const expenses = await prisma.expense.findMany({
-      where: { companyId, date: { gte: openingTime } },
+      where: expensesWhere,
     });
     const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
@@ -1941,6 +2075,7 @@ app.post("/api/z-reports", requireAuth, async (req: any, res) => {
         notes: notes || null,
         status: "closed",
         companyId,
+        branchId: branchFilter || req.user.branchId || null,
         userId: req.user.userId,
         items: {
           create: sales.map(s => ({ saleId: s.id })),
@@ -1963,8 +2098,11 @@ app.post("/api/z-reports", requireAuth, async (req: any, res) => {
 
 app.get("/api/z-reports", requireAuth, async (req: any, res) => {
   try {
+    const branchFilter = getBranchFilter(req);
+    const where: any = { companyId: req.user.companyId };
+    if (branchFilter) where.branchId = branchFilter;
     const reports = await prisma.zReport.findMany({
-      where: { companyId: req.user.companyId },
+      where,
       orderBy: { createdAt: "desc" },
       take: 30,
     });
@@ -2010,6 +2148,7 @@ app.post("/api/airtime", requireAuth, async (req: any, res) => {
         reference: `AT-${Date.now()}`,
         companyId: req.user.companyId,
         userId: req.user.userId,
+        branchId: req.user.branchId || null,
       },
     });
 
@@ -2022,8 +2161,11 @@ app.post("/api/airtime", requireAuth, async (req: any, res) => {
 
 app.get("/api/airtime", requireAuth, async (req: any, res) => {
   try {
+    const branchFilter = getBranchFilter(req);
+    const where: any = { companyId: req.user.companyId };
+    if (branchFilter) where.branchId = branchFilter;
     const sales = await prisma.airtimeSale.findMany({
-      where: { companyId: req.user.companyId },
+      where,
       orderBy: { createdAt: "desc" },
       take: 50,
     });
@@ -2055,6 +2197,7 @@ app.post("/api/bill-payments", requireAuth, async (req: any, res) => {
         reference: `BP-${Date.now()}`,
         companyId: req.user.companyId,
         userId: req.user.userId,
+        branchId: req.user.branchId || null,
       },
     });
 
@@ -2067,8 +2210,11 @@ app.post("/api/bill-payments", requireAuth, async (req: any, res) => {
 
 app.get("/api/bill-payments", requireAuth, async (req: any, res) => {
   try {
+    const branchFilter = getBranchFilter(req);
+    const where: any = { companyId: req.user.companyId };
+    if (branchFilter) where.branchId = branchFilter;
     const payments = await prisma.billPayment.findMany({
-      where: { companyId: req.user.companyId },
+      where,
       orderBy: { createdAt: "desc" },
       take: 50,
     });
@@ -2176,12 +2322,15 @@ app.post("/api/loyalty/redeem", requireAuth, async (req: any, res) => {
 app.get("/api/profit-analysis", requireAuth, async (req: any, res) => {
   try {
     const companyId = req.user.companyId;
+    const branchFilter = getBranchFilter(req);
     const { startDate, endDate } = req.query;
     const start = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const end = endDate ? new Date(endDate as string) : new Date();
 
+    const salesWhere: any = { companyId, createdAt: { gte: start, lte: end }, status: "completed" };
+    if (branchFilter) salesWhere.branchId = branchFilter;
     const sales = await prisma.sale.findMany({
-      where: { companyId, createdAt: { gte: start, lte: end }, status: "completed" },
+      where: salesWhere,
       include: { items: { include: { product: { select: { costPrice: true, name: true } } } } },
     });
 
@@ -2481,8 +2630,11 @@ app.delete("/api/suppliers/:id", requireAuth, requirePermission("manage_supplier
 // ─────────────────────────────────────────────
 app.get("/api/expenses", requireAuth, async (req: any, res) => {
   try {
+    const branchFilter = getBranchFilter(req);
+    const where: any = { companyId: req.user.companyId };
+    if (branchFilter) where.branchId = branchFilter;
     const expenses = await prisma.expense.findMany({
-      where: { companyId: req.user.companyId },
+      where,
       orderBy: { date: "desc" },
       take: 100,
     });
@@ -2507,6 +2659,7 @@ app.post("/api/expenses", requireAuth, requirePermission("manage_expenses"), asy
         reference: reference || null,
         userId: req.user.userId,
         companyId: req.user.companyId,
+        branchId: req.body.branchId || req.user.branchId || null,
       },
     });
     res.json(expense);
@@ -2556,7 +2709,8 @@ app.delete("/api/expenses/:id", requireAuth, requirePermission("manage_expenses"
 app.get("/api/dashboard/stats", requireAuth, async (req: any, res) => {
   try {
     const companyId = req.user.companyId;
-    const cacheKey = `dashboard:${companyId}`;
+    const branchFilter = getBranchFilter(req);
+    const cacheKey = `dashboard:${companyId}:${branchFilter || 'all'}`;
     const cached = getCached(cacheKey);
     if (cached) {
       return res.json(cached);
@@ -2566,57 +2720,58 @@ app.get("/api/dashboard/stats", requireAuth, async (req: any, res) => {
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
 
+    const branchWhere = branchFilter ? { companyId, branchId: branchFilter } : { companyId };
     const [totalProducts, todaySales, monthSales, totalCustomers, lowStockProducts, todayExpenses,
            weekSales, topProducts, recentSales, activeStaff, creditOutstanding, totalExpensesMonth] = await Promise.all([
-      prisma.product.count({ where: { companyId, deletedAt: null, isActive: true } }),
+      prisma.product.count({ where: { ...branchWhere, deletedAt: null, isActive: true } }),
       prisma.sale.aggregate({
-        where: { companyId, createdAt: { gte: startOfDay }, status: "completed" },
+        where: { ...branchWhere, createdAt: { gte: startOfDay }, status: "completed" },
         _sum: { totalAmount: true, profitAmount: true },
         _count: true,
       }),
       prisma.sale.aggregate({
-        where: { companyId, createdAt: { gte: startOfMonth }, status: "completed" },
+        where: { ...branchWhere, createdAt: { gte: startOfMonth }, status: "completed" },
         _sum: { totalAmount: true, profitAmount: true },
         _count: true,
       }),
       prisma.customer.count({ where: { companyId, isActive: true } }),
       prisma.product.count({
         where: {
-          companyId,
+          ...branchWhere,
           deletedAt: null,
           isActive: true,
           stockQuantity: { lte: prisma.product.fields.lowStockThreshold },
         },
       }),
       prisma.expense.aggregate({
-        where: { companyId, date: { gte: startOfDay } },
+        where: { ...branchWhere, date: { gte: startOfDay } },
         _sum: { amount: true },
       }),
       prisma.sale.findMany({
-        where: { companyId, createdAt: { gte: sevenDaysAgo }, status: "completed" },
+        where: { ...branchWhere, createdAt: { gte: sevenDaysAgo }, status: "completed" },
         select: { totalAmount: true, createdAt: true, paymentMethod: true },
         orderBy: { createdAt: "asc" },
       }),
       prisma.saleItem.groupBy({
         by: ["productId"],
-        where: { sale: { companyId, status: "completed", createdAt: { gte: startOfMonth } } },
+        where: { sale: { ...branchWhere, status: "completed", createdAt: { gte: startOfMonth } } },
         _sum: { quantity: true, totalPrice: true },
         orderBy: { _sum: { totalPrice: "desc" } },
         take: 5,
       }),
       prisma.sale.findMany({
-        where: { companyId, status: "completed" },
+        where: { ...branchWhere, status: "completed" },
         include: { items: { take: 1, include: { product: { select: { name: true } } } }, user: { select: { fullName: true } } },
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
       prisma.user.count({ where: { companyId, status: "active", deletedAt: null } }),
       prisma.sale.aggregate({
-        where: { companyId, isCredit: true, creditSettled: false },
+        where: { ...branchWhere, isCredit: true, creditSettled: false },
         _sum: { totalAmount: true },
       }),
       prisma.expense.aggregate({
-        where: { companyId, date: { gte: startOfMonth } },
+        where: { ...branchWhere, date: { gte: startOfMonth } },
         _sum: { amount: true },
       }),
     ]);
@@ -2769,6 +2924,7 @@ app.post("/api/sync/upload", requireAuth, async (req: any, res) => {
             paymentStatus: "paid",
             status: "completed",
             companyId: req.user.companyId,
+            branchId: req.user.branchId || null,
             items: {
               create: (tx.items || []).map((item: any) => ({
                 productId: item.productId,

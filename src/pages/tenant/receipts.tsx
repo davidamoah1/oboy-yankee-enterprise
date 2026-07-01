@@ -315,7 +315,7 @@ export default function ReceiptsPage() {
                   <h4 className="font-extrabold text-sm uppercase text-slate-200">
                     {shareReceipt.customer || "Walk-In Customer"}
                   </h4>
-                  <p className="text-[14px] font-mono font-black text-emerald-400">₵ {shareReceipt.total.toFixed(2)}</p>
+                  <p className="text-[14px] font-mono font-black text-emerald-400">₵ {Number(shareReceipt.total).toFixed(2)}</p>
                   <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{shareReceipt.date} • {shareReceipt.time}</p>
                 </div>
 
@@ -367,7 +367,7 @@ export default function ReceiptsPage() {
                           `*Date:* ${shareReceipt.date} • ${shareReceipt.time}\n` +
                           `*Customer:* ${shareReceipt.customer || "Walk-In Customer"}\n` +
                           `=============================\n` +
-                          `*Grand Total:* GH₵${shareReceipt.total.toFixed(2)}\n\n` +
+                          `*Grand Total:* GH₵${Number(shareReceipt.total).toFixed(2)}\n\n` +
                           `*Settlement Method:* ${shareReceipt.method}\n\n` +
                           `Thank you for shopping with us! View receipt online: ${window.location.origin}/receipts/${shareReceipt.rawId}`
                         );
@@ -389,7 +389,7 @@ export default function ReceiptsPage() {
                     if (navigator.share) {
                       navigator.share({
                         title: `Receipt ${shareReceipt.id}`,
-                        text: `View receipt for transaction of ₵${shareReceipt.total.toFixed(2)}`,
+                        text: `View receipt for transaction of ₵${Number(shareReceipt.total).toFixed(2)}`,
                         url: `${window.location.origin}/receipts/${shareReceipt.rawId}`
                       }).then(() => toast.success("Shared successfully!"))
                         .catch((err) => console.log(err));

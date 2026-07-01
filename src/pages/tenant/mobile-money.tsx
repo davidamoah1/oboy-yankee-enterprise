@@ -543,7 +543,7 @@ export default function MobileMoneyPage() {
                            "font-black italic text-lg tracking-tighter",
                            tx.type === "Inward" ? "text-slate-100" : "text-rose-400"
                         )}>
-                           {tx.type === "Inward" ? "+" : "-"} GH₵ {tx.amount.toFixed(2)}
+                           {tx.type === "Inward" ? "+" : "-"} GH₵ {Number(tx.amount).toFixed(2)}
                         </TableCell>
                         <TableCell className="text-[10px] font-bold text-slate-600 italic uppercase">{tx.date}</TableCell>
                         <TableCell className="text-right px-10">

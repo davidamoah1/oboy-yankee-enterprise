@@ -21,6 +21,7 @@ export interface Product extends BaseEntity {
   taxRate: number;
   unit: string | null;
   companyId: string;
+  branchId: string | null;
 }
 
 export interface Sale extends BaseEntity {
@@ -36,6 +37,7 @@ export interface Sale extends BaseEntity {
   status: 'completed' | 'voided' | 'refunded';
   notes: string | null;
   companyId: string;
+  branchId: string | null;
 }
 
 export interface SaleItem {
@@ -94,6 +96,7 @@ export interface Expense extends BaseEntity {
   paymentMethod: string | null;
   reference: string | null;
   companyId: string;
+  branchId: string | null;
   userId: string | null;
 }
 
@@ -104,6 +107,7 @@ export interface Purchase extends BaseEntity {
   paidAmount: number;
   notes: string | null;
   companyId: string;
+  branchId: string | null;
   userId: string | null;
 }
 
@@ -116,6 +120,7 @@ export interface Employee extends BaseEntity {
   hireDate: string;
   status: 'active' | 'on_leave' | 'terminated';
   companyId: string;
+  branchId: string | null;
   departmentId: string | null;
 }
 
@@ -127,5 +132,6 @@ export interface CashDrawer extends BaseEntity {
   closedAt: string | null;
   notes: string | null;
   companyId: string;
+  branchId: string | null;
   userId: string | null;
 }

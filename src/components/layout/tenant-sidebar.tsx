@@ -27,7 +27,8 @@ import {
   TrendingUp,
   Tag,
   Trash2,
-  ScrollText
+  ScrollText,
+  Store
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -90,6 +91,7 @@ export function TenantSidebar({ onSelect }: SidebarProps) {
         { label: 'Promotions', href: '/promotions', icon: Tag, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
         { label: 'Mobile Money', href: '/mobile-money', icon: Sparkles, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
         { label: 'Settings', href: '/settings', icon: Settings, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN] },
+        { label: 'Branches', href: '/branches', icon: Store, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN] },
         { label: 'Activity Logs', href: '/activity-logs', icon: ScrollText, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.MANAGER] },
         { label: 'Support', href: '/support', icon: LifeBuoy },
       ]

@@ -309,13 +309,13 @@ Address: ${invoice.address}
 LINE ITEMS:
 ----------------------------------------
 ${invoice.lineItems.map(item => `* ${item.description}
-  Qty: ${item.qty} | Price: GH₵${item.unitPrice.toFixed(2)} | Subtotal: GH₵${item.total.toFixed(2)}`).join("\n\n")}
+  Qty: ${item.qty} | Price: GH₵${Number(item.unitPrice).toFixed(2)} | Subtotal: GH₵${Number(item.total).toFixed(2)}`).join("\n\n")}
 
 SUMMARY:
 ----------------------------------------
-Subtotal:     GH₵${invoice.amount.toFixed(2)}
+Subtotal:     GH₵${Number(invoice.amount).toFixed(2)}
 Sales Taxes:  GH₵0.00 (Included flat rate)
-Total Amount: GH₵${invoice.amount.toFixed(2)}
+Total Amount: GH₵${Number(invoice.amount).toFixed(2)}
 
 PAYMENT LOGS:
 ----------------------------------------
@@ -833,8 +833,8 @@ ${invoice.paymentHistory.length === 0 ? "No previous payments registered." : inv
                               <TableRow key={index} className="border-b border-white/5 hover:bg-transparent">
                                 <TableCell className="font-bold text-slate-200 text-xs sm:text-sm py-4">{item.description}</TableCell>
                                 <TableCell className="text-center font-black sm:text-sm py-4 text-slate-400">{item.qty}</TableCell>
-                                <TableCell className="text-right font-black tracking-tight text-xs sm:text-sm py-4 text-slate-400">GH₵ {item.unitPrice.toFixed(2)}</TableCell>
-                                <TableCell className="text-right font-black tracking-tight text-xs sm:text-sm py-4 text-slate-200">GH₵ {item.total.toFixed(2)}</TableCell>
+                                <TableCell className="text-right font-black tracking-tight text-xs sm:text-sm py-4 text-slate-400">GH₵ {Number(item.unitPrice).toFixed(2)}</TableCell>
+                                <TableCell className="text-right font-black tracking-tight text-xs sm:text-sm py-4 text-slate-200">GH₵ {Number(item.total).toFixed(2)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -846,7 +846,7 @@ ${invoice.paymentHistory.length === 0 ? "No previous payments registered." : inv
                     <div className="flex flex-col items-end pt-4 space-y-2">
                       <div className="flex justify-between w-64 text-xs font-bold text-slate-500">
                         <span>Items Subtotal</span>
-                        <span>GH₵ {selectedInvoice.amount.toFixed(2)}</span>
+                        <span>GH₵ {Number(selectedInvoice.amount).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between w-64 text-xs font-bold text-slate-500">
                         <span>Taxes & VAT (Included)</span>
@@ -855,7 +855,7 @@ ${invoice.paymentHistory.length === 0 ? "No previous payments registered." : inv
                       <div className="h-[1px] w-64 bg-white/10 my-2" />
                       <div className="flex justify-between w-64 text-lg font-black text-slate-100 italic">
                         <span>Total Due</span>
-                        <span className="text-primary">GH₵ {selectedInvoice.amount.toFixed(2)}</span>
+                        <span className="text-primary">GH₵ {Number(selectedInvoice.amount).toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -906,7 +906,7 @@ ${invoice.paymentHistory.length === 0 ? "No previous payments registered." : inv
                               <TableCell className="font-bold text-slate-550 text-xs py-4 text-slate-400">{p.date}</TableCell>
                               <TableCell className="font-bold text-slate-200 text-xs py-4 text-slate-200">{p.method}</TableCell>
                               <TableCell className="font-bold text-slate-500 font-mono text-xs py-4 text-slate-500">{p.ref}</TableCell>
-                              <TableCell className="font-black italic text-xs py-4 text-slate-200">GH₵ {p.amount.toFixed(2)}</TableCell>
+                              <TableCell className="font-black italic text-xs py-4 text-slate-200">GH₵ {Number(p.amount).toFixed(2)}</TableCell>
                               <TableCell className="text-right py-4">
                                 <Badge className="bg-emerald-500/10 text-emerald-400 border-none font-bold text-[9px] px-2 py-0.5">
                                   {p.status}

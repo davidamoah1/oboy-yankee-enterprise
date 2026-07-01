@@ -1,6 +1,6 @@
-// OBOY YANKEE ENTERPRISE — Single Company Schema
+// OBOY YANKEE ENTERPRISE — Multi-Branch Schema
 // Neon PostgreSQL | Prisma ORM
-// No tenant_id. No multi-tenancy. One company per deployment.
+// One company, many branches (shops). branchId separates data per shop.
 
 generator client {
   provider = "prisma-client-js"
@@ -35,6 +35,7 @@ model Company {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  branches       Branch[]
   users          User[]
   products       Product[]
   customers      Customer[]
@@ -65,6 +66,44 @@ model Company {
 }
 
 // ─────────────────────────────────────────────
+// Branches (Shops)
+// ─────────────────────────────────────────────
+model Branch {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  code        String?  // short code e.g. SHOP-01
+  phone       String?
+  address     String?
+  city        String?
+  region      String?
+  managerName String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  companyId   String   @db.Uuid
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  users        User[]
+  products     Product[]
+  sales        Sale[]
+  expenses     Expense[]
+  cashDrawers  CashDrawer[]
+  employees    Employee[]
+  purchases    Purchase[]
+  zReports     ZReport[]
+  airtimeSales AirtimeSale[]
+  billPayments BillPayment[]
+  promotions   Promotion[]
+  invoices     Invoice[]
+  inventory    Inventory[]
+  stockMovements StockMovement[]
+
+  @@index([companyId])
+  @@unique([companyId, code])
+}
+
+// ─────────────────────────────────────────────
 // Authentication & RBAC
 // ─────────────────────────────────────────────
 model User {
@@ -86,6 +125,8 @@ model User {
 
   companyId     String   @db.Uuid
   company       Company  @relation(fields: [companyId], references: [id])
+  branchId      String?  @db.Uuid
+  branch        Branch?  @relation(fields: [branchId], references: [id])
 
   customRole    Role?         @relation(fields: [customRoleId], references: [id])
   userPerms     UserPermission[]
@@ -105,6 +146,7 @@ model User {
 
   @@index([companyId])
   @@index([email])
+  @@index([branchId])
 }
 
 model Role {
@@ -209,10 +251,12 @@ model Product {
   companyId        String   @db.Uuid
   categoryId       String?  @db.Uuid
   brandId          String?  @db.Uuid
+  branchId         String?  @db.Uuid
 
   company          Company  @relation(fields: [companyId], references: [id])
   category         Category? @relation(fields: [categoryId], references: [id])
   brand            Brand?    @relation(fields: [brandId], references: [id])
+  branch           Branch?   @relation(fields: [branchId], references: [id])
 
   variants         ProductVariant[]
   inventory        Inventory[]
@@ -223,6 +267,7 @@ model Product {
   @@index([companyId])
   @@index([sku])
   @@index([barcode])
+  @@index([branchId])
 }
 
 model ProductVariant {
@@ -251,9 +296,13 @@ model Inventory {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  branchId      String?  @db.Uuid
+
   product       Product  @relation(fields: [productId], references: [id])
+  branch        Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([productId])
+  @@index([branchId])
 }
 
 model StockMovement {
@@ -265,11 +314,15 @@ model StockMovement {
   reference   String?  // sale_id, purchase_id, etc.
   createdAt   DateTime @default(now())
 
+  branchId    String?  @db.Uuid
+
   product     Product  @relation(fields: [productId], references: [id])
+  branch      Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([productId])
   @@index([type])
   @@index([createdAt])
+  @@index([branchId])
 }
 
 // ─────────────────────────────────────────────
@@ -304,15 +357,18 @@ model Purchase {
 
   companyId     String   @db.Uuid
   userId        String?  @db.Uuid
+  branchId      String?  @db.Uuid
 
   company       Company  @relation(fields: [companyId], references: [id])
   supplier      Supplier @relation(fields: [supplierId], references: [id])
   user          User?    @relation(fields: [userId], references: [id])
+  branch        Branch?  @relation(fields: [branchId], references: [id])
   items         PurchaseItem[]
 
   @@index([companyId])
   @@index([supplierId])
   @@index([status])
+  @@index([branchId])
 }
 
 model PurchaseItem {
@@ -380,10 +436,12 @@ model Sale {
   updatedAt       DateTime @updatedAt
 
   companyId       String   @db.Uuid
+  branchId        String?  @db.Uuid
 
   company         Company  @relation(fields: [companyId], references: [id])
   customer        Customer? @relation(fields: [customerId], references: [id])
   user            User?    @relation(fields: [userId], references: [id])
+  branch          Branch?  @relation(fields: [branchId], references: [id])
   items           SaleItem[]
   returns         Return[]
   payments        Payment[]
@@ -396,6 +454,7 @@ model Sale {
   @@index([status])
   @@index([createdAt])
   @@index([isCredit])
+  @@index([branchId])
 }
 
 model SaleItem {
@@ -470,12 +529,15 @@ model CashDrawer {
 
   companyId     String   @db.Uuid
   userId        String?  @db.Uuid
+  branchId      String?  @db.Uuid
 
   company       Company  @relation(fields: [companyId], references: [id])
   user          User?    @relation(fields: [userId], references: [id])
+  branch        Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([companyId])
   @@index([status])
+  @@index([branchId])
 }
 
 // ─────────────────────────────────────────────
@@ -506,13 +568,16 @@ model Expense {
 
   companyId   String   @db.Uuid
   userId      String?  @db.Uuid
+  branchId    String?  @db.Uuid
 
   company     Company  @relation(fields: [companyId], references: [id])
   user        User?    @relation(fields: [userId], references: [id])
   expenseCat  ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  branch      Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([companyId])
   @@index([date])
+  @@index([branchId])
 }
 
 // ─────────────────────────────────────────────
@@ -544,13 +609,16 @@ model Employee {
   companyId   String   @db.Uuid
   departmentId String? @db.Uuid
   userId      String?  @db.Uuid @unique
+  branchId    String?  @db.Uuid
 
   company     Company  @relation(fields: [companyId], references: [id])
   department  Department? @relation(fields: [departmentId], references: [id])
   user        User?    @relation(fields: [userId], references: [id])
+  branch      Branch?  @relation(fields: [branchId], references: [id])
   attendance  Attendance[]
 
   @@index([companyId])
+  @@index([branchId])
 }
 
 model Attendance {
@@ -748,14 +816,17 @@ model ZReport {
 
   companyId       String   @db.Uuid
   userId          String?  @db.Uuid
+  branchId        String?  @db.Uuid
 
   company         Company  @relation(fields: [companyId], references: [id])
   user            User?    @relation(fields: [userId], references: [id])
+  branch          Branch?  @relation(fields: [branchId], references: [id])
   items           ZReportItem[]
 
   @@index([companyId])
   @@index([status])
   @@index([createdAt])
+  @@index([branchId])
 }
 
 model ZReportItem {
@@ -785,13 +856,16 @@ model AirtimeSale {
 
   companyId     String   @db.Uuid
   userId        String?  @db.Uuid
+  branchId      String?  @db.Uuid
 
   company       Company  @relation(fields: [companyId], references: [id])
   user          User?    @relation(fields: [userId], references: [id])
+  branch        Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([companyId])
   @@index([network])
   @@index([createdAt])
+  @@index([branchId])
 }
 
 // ─────────────────────────────────────────────
@@ -811,13 +885,16 @@ model BillPayment {
 
   companyId     String   @db.Uuid
   userId        String?  @db.Uuid
+  branchId      String?  @db.Uuid
 
   company       Company  @relation(fields: [companyId], references: [id])
   user          User?    @relation(fields: [userId], references: [id])
+  branch        Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([companyId])
   @@index([provider])
   @@index([createdAt])
+  @@index([branchId])
 }
 
 // ─────────────────────────────────────────────
@@ -842,10 +919,13 @@ model Promotion {
 
   companyId     String   @db.Uuid
   company       Company  @relation(fields: [companyId], references: [id])
+  branchId      String?  @db.Uuid
+  branch        Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([companyId])
   @@index([isActive])
   @@index([startDate, endDate])
+  @@index([branchId])
 }
 
 // ─────────────────────────────────────────────
@@ -908,7 +988,10 @@ model Invoice {
 
   companyId           String   @db.Uuid
   company             Company  @relation(fields: [companyId], references: [id])
+  branchId            String?  @db.Uuid
+  branch              Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([companyId])
   @@index([status])
+  @@index([branchId])
 }

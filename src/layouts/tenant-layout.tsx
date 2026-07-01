@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "motion/react";
 import { TenantSidebar } from "@/components/layout/tenant-sidebar";
+import { BranchSelector } from "@/components/branch-selector";
 import { useAuth } from "@/contexts/auth-context";
 import { TenantSecurityWrapper } from "@/components/auth/tenant-security-wrapper";
 import { NexaCommand } from "@/components/intelligence/nexa-command";
@@ -151,6 +152,7 @@ export function TenantLayout() {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <BranchSelector />
                 <ThemeToggle />
                 
                 <Tooltip>

@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { tokenStorage } from '@/lib/supabase';
-import { UserProfile, UserRole, Company } from '@/types/auth';
+import { UserProfile, UserRole, Company, Branch } from '@/types/auth';
 import apiClient from '@/lib/api-client';
 
 interface AuthContextType {
   user: UserProfile | null;
   company: Company | null;
+  branches: Branch[];
+  activeBranch: Branch | null;
   loading: boolean;
   authInitialized: boolean;
   isAuthenticated: boolean;
@@ -13,6 +15,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<UserProfile>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  setActiveBranchId: (branchId: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +23,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [activeBranchId, setActiveBranchIdState] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
@@ -49,13 +54,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         customRoleId: userData.customRoleId || null,
         status: userData.status,
         companyId: userData.companyId,
+        branchId: userData.branchId || null,
         lastLoginAt: userData.lastLoginAt || null,
         createdAt: userData.createdAt,
       };
 
+      // Fetch branches for this company
+      let branchList: Branch[] = [];
+      try {
+        const branchRes = await apiClient.get('/api/branches');
+        branchList = branchRes.data;
+      } catch (e) {
+        console.warn('[AuthContext] Failed to fetch branches:', e);
+      }
+
       if (mountedRef.current) {
         setUser(profile);
         setCompany(userData.company || null);
+        setBranches(branchList);
+        const storedBranchId = localStorage.getItem('activeBranchId');
+        const isAdmin = profile.role === UserRole.SUPER_ADMIN || profile.role === UserRole.COMPANY_ADMIN;
+        if (storedBranchId && (isAdmin || storedBranchId === profile.branchId)) {
+          setActiveBranchIdState(storedBranchId);
+        } else {
+          setActiveBranchIdState(profile.branchId);
+        }
         setPermissions(userData.permissions || []);
         tokenStorage.cacheUser(profile);
       }
@@ -65,6 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mountedRef.current) {
         setUser(null);
         setCompany(null);
+        setBranches([]);
+        setActiveBranchIdState(null);
         setPermissions([]);
       }
     } finally {
@@ -114,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       customRoleId: userData.customRoleId || null,
       status: userData.status,
       companyId: userData.companyId,
+      branchId: userData.branchId || null,
       lastLoginAt: userData.lastLoginAt || null,
       createdAt: userData.createdAt,
     };
@@ -121,7 +147,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(profile);
     setCompany(userData.company || null);
     setPermissions(userData.permissions || []);
+    setActiveBranchIdState(userData.branchId || null);
     tokenStorage.cacheUser(profile);
+
+    // Fetch branches in background
+    apiClient.get('/api/branches').then((res) => {
+      if (mountedRef.current) setBranches(res.data);
+    }).catch(() => {});
+
     return profile;
   }, []);
 
@@ -130,8 +163,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiClient.post('/api/auth/logout').catch(() => {});
     } finally {
       tokenStorage.clearTokens();
+      localStorage.removeItem('activeBranchId');
       setUser(null);
       setCompany(null);
+      setBranches([]);
+      setActiveBranchIdState(null);
       setPermissions([]);
       window.location.href = '/login';
     }
@@ -143,9 +179,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = useMemo(() => !!user && tokenStorage.hasTokens(), [user]);
 
+  const activeBranch = useMemo(() => {
+    if (!activeBranchId || branches.length === 0) return null;
+    return branches.find(b => b.id === activeBranchId) || null;
+  }, [activeBranchId, branches]);
+
+  const setActiveBranchId = useCallback((branchId: string | null) => {
+    if (branchId) {
+      localStorage.setItem('activeBranchId', branchId);
+    } else {
+      localStorage.removeItem('activeBranchId');
+    }
+    setActiveBranchIdState(branchId);
+  }, []);
+
   const value = useMemo(() => ({
     user,
     company,
+    branches,
+    activeBranch,
     loading,
     authInitialized,
     isAuthenticated,
@@ -153,7 +205,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signOut,
     refreshProfile,
-  }), [user, company, loading, authInitialized, isAuthenticated, permissions, signIn, signOut, refreshProfile]);
+    setActiveBranchId,
+  }), [user, company, branches, activeBranch, loading, authInitialized, isAuthenticated, permissions, signIn, signOut, refreshProfile, setActiveBranchId]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

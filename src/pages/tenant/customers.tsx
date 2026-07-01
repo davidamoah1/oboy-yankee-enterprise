@@ -526,7 +526,7 @@ export default function CustomersPage() {
                    </TableHeader>
                    <TableBody>
                      {filteredCustomers.map((customer) => {
-                        const debt = customer.debtBalance || 0;
+                        const debt = Number(customer.debtBalance) || 0;
                         const trust = customer.trustScore || 100;
                         return (
                           <TableRow key={customer.id} className="hover:bg-white/[0.02] border-b border-white/5 transition-all text-white">

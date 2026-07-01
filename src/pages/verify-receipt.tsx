@@ -293,10 +293,10 @@ export default function VerifyReceiptPage() {
                         <div className="space-y-0.5">
                           <span className="font-bold text-white print:text-black">{item.name}</span>
                           <p className="text-[10px] text-slate-400 font-mono">
-                            {item.id || "Retail Item"} • Qty: {item.qty} × ₵{item.price.toFixed(2)}
+                            {item.id || "Retail Item"} • Qty: {item.qty} × ₵{Number(item.price).toFixed(2)}
                           </p>
                         </div>
-                        <span className="font-bold text-white print:text-black">₵ {item.total.toFixed(2)}</span>
+                        <span className="font-bold text-white print:text-black">₵ {Number(item.total).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
@@ -308,24 +308,24 @@ export default function VerifyReceiptPage() {
                 <div className="bg-slate-900/50 rounded-2xl p-6 space-y-3 border border-white/5 print:bg-slate-100 print:text-black">
                   <div className="flex justify-between text-xs text-slate-400">
                     <span>Subtotal</span>
-                    <span>₵ {receipt.subtotal.toFixed(2)}</span>
+                    <span>₵ {Number(receipt.subtotal).toFixed(2)}</span>
                   </div>
                   {receipt.tax > 0 && (
                     <div className="flex justify-between text-xs text-slate-400">
                       <span>VAT (5%)</span>
-                      <span>₵ {receipt.tax.toFixed(2)}</span>
+                      <span>₵ {Number(receipt.tax).toFixed(2)}</span>
                     </div>
                   )}
                   {receipt.discount > 0 && (
                     <div className="flex justify-between text-xs text-emerald-400">
                       <span>Discount Applied</span>
-                      <span>-₵ {receipt.discount.toFixed(2)}</span>
+                      <span>-₵ {Number(receipt.discount).toFixed(2)}</span>
                     </div>
                   )}
                   <div className="h-[1px] w-full bg-white/5 my-2 print:bg-slate-300" />
                   <div className="flex justify-between items-baseline pt-1">
                     <span className="text-xs font-black uppercase tracking-wider text-slate-400">Grand Total Paid</span>
-                    <span className="text-3xl font-black italic tracking-tight text-emerald-400 print:text-black">₵ {receipt.total.toFixed(2)}</span>
+                    <span className="text-3xl font-black italic tracking-tight text-emerald-400 print:text-black">₵ {Number(receipt.total).toFixed(2)}</span>
                   </div>
                 </div>
 

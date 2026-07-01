@@ -117,7 +117,7 @@ export default function SalesHistoryPage() {
         s.id,
         s.customer,
         s.items,
-        s.amount.toFixed(2),
+        Number(s.amount).toFixed(2),
         s.method,
         s.timestamp,
         s.status

@@ -174,7 +174,7 @@ export default function ReceiptDetailPage() {
   const handleWhatsAppShare = () => {
     if (!receiptData) return;
     const message = `Hello! This is your digital receipt from ${receiptData.shopName}. 
-Total Paid: ₵${receiptData.total.toFixed(2)}
+Total Paid: ₵${Number(receiptData.total).toFixed(2)}
 Verification Signature: ${receiptData.id}
 Scan or click to verify digital receipt ledger: ${verifyUrl}`;
     
@@ -288,8 +288,8 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
                              <div className="font-black italic text-lg tracking-tight group-hover:text-primary transition-colors">{item.name}</div>
                           </div>
                           <div className="w-16 text-center text-xs font-black italic opacity-40 uppercase tracking-widest">x{item.qty}</div>
-                          <div className="w-24 text-right text-xs font-bold italic opacity-60">₵ {(item.price / item.qty).toFixed(2)}</div>
-                          <div className="w-24 text-right font-black italic text-lg">₵ {item.price.toFixed(2)}</div>
+                          <div className="w-24 text-right text-xs font-bold italic opacity-60">₵ {(Number(item.price) / item.qty).toFixed(2)}</div>
+                          <div className="w-24 text-right font-black italic text-lg">₵ {Number(item.price).toFixed(2)}</div>
                         </div>
                       ))}
                    </div>
@@ -303,25 +303,25 @@ Scan or click to verify digital receipt ledger: ${verifyUrl}`;
                    <div className="space-y-3 relative z-10">
                       <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground italic">
                          <span>Subtotal</span>
-                         <span>₵ {receiptData.subtotal.toFixed(2)}</span>
+                         <span>₵ {Number(receiptData.subtotal).toFixed(2)}</span>
                       </div>
                       {receiptData.discount > 0 && (
                         <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-green-500 italic">
                            <span>Discount Applied</span>
-                           <span>-₵ {receiptData.discount.toFixed(2)}</span>
+                           <span>-₵ {Number(receiptData.discount).toFixed(2)}</span>
                         </div>
                       )}
                       {receiptData.tax > 0 && (
                         <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground italic">
                            <span>Tax</span>
-                           <span>₵ {receiptData.tax.toFixed(2)}</span>
+                           <span>₵ {Number(receiptData.tax).toFixed(2)}</span>
                         </div>
                       )}
                    </div>
                    <div className="flex justify-between items-end pt-8 border-t border-white/10 relative z-10">
                       <div className="space-y-1">
                          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary opacity-50 italic">Total Paid</span>
-                         <h2 className="text-5xl font-black italic tracking-tighter text-primary">₵ {receiptData.total.toFixed(2)}</h2>
+                         <h2 className="text-5xl font-black italic tracking-tighter text-primary">₵ {Number(receiptData.total).toFixed(2)}</h2>
                       </div>
                       <div className="flex flex-col items-end gap-2">
                          <Badge className={receiptData.isCredit ? "bg-orange-500/10 text-orange-500 border-none px-4 py-1.5 rounded-full font-black uppercase tracking-[0.2em] text-[9px] italic" : "bg-green-500/10 text-green-500 border-none px-4 py-1.5 rounded-full font-black uppercase tracking-[0.2em] text-[9px] italic"}>

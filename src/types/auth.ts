@@ -29,6 +29,7 @@ export interface UserProfile {
   customRoleId: string | null;
   status: 'active' | 'suspended' | 'invited';
   companyId: string;
+  branchId: string | null;
   lastLoginAt: string | null;
   createdAt: string;
 }
@@ -57,6 +58,21 @@ export interface Company {
   timezone: string;
   businessType: string | null;
   settings: Record<string, any>;
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  code: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  region: string | null;
+  managerName: string | null;
+  isActive: boolean;
+  companyId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AuthTokens {

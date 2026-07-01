@@ -185,7 +185,7 @@ export default function AccountingPage() {
                           "font-black italic text-xl tracking-tighter",
                           tx.type === "Income" ? "text-slate-100" : "text-rose-400"
                        )}>
-                          {tx.type === "Income" ? "+" : "-"} {tx.amount.toFixed(2)}
+                          {tx.type === "Income" ? "+" : "-"} {Number(tx.amount).toFixed(2)}
                        </TableCell>
                        <TableCell className="text-[10px] font-black text-slate-600 italic uppercase">{tx.date}</TableCell>
                        <TableCell className="text-center">

@@ -27,7 +27,24 @@ async function main() {
     },
   });
 
-  // 2. Create System Roles
+  // 2. Create Default Branch (Main Shop)
+  const mainBranch = await prisma.branch.upsert({
+    where: { companyId_code: { companyId: company.id, code: 'SHOP-01' } },
+    update: {},
+    create: {
+      name: 'Main Shop',
+      code: 'SHOP-01',
+      phone: '+233 30 000 0000',
+      address: 'Accra, Ghana',
+      city: 'Accra',
+      region: 'Greater Accra',
+      managerName: 'Business Owner',
+      isActive: true,
+      companyId: company.id,
+    },
+  });
+
+  // 3. Create System Roles
   const roles = [
     { name: 'Super Admin', slug: 'super_admin', description: 'Hidden system administrator for installation, license management, and emergency access', isSystem: true },
     { name: 'Company Admin', slug: 'company_admin', description: 'Full access to all company modules and settings', isSystem: true },
@@ -97,32 +114,36 @@ async function main() {
   }
 
   // 5. Create hidden Super Admin user
-  const superAdminPassword = await bcrypt.hash('NexaAdmin@2026!', 12);
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@oboyyankee.gh';
+  const superAdminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD || 'NexaAdmin@2026!', 12);
   await prisma.user.upsert({
-    where: { email: 'admin@oboyyankee.gh' },
+    where: { email: superAdminEmail },
     update: {},
     create: {
-      email: 'admin@oboyyankee.gh',
+      email: superAdminEmail,
       passwordHash: superAdminPassword,
       fullName: 'System Administrator',
       role: 'super_admin',
       status: 'active',
       companyId: company.id,
+      branchId: mainBranch.id,
     },
   });
 
   // 6. Create demo Company Admin user
-  const companyAdminPassword = await bcrypt.hash('Admin@2026!', 12);
+  const companyAdminEmail = process.env.COMPANY_ADMIN_EMAIL || 'owner@oboyyankee.gh';
+  const companyAdminPassword = await bcrypt.hash(process.env.COMPANY_ADMIN_PASSWORD || 'Admin@2026!', 12);
   await prisma.user.upsert({
-    where: { email: 'owner@oboyyankee.gh' },
+    where: { email: companyAdminEmail },
     update: {},
     create: {
-      email: 'owner@oboyyankee.gh',
+      email: companyAdminEmail,
       passwordHash: companyAdminPassword,
       fullName: 'Business Owner',
       role: 'company_admin',
       status: 'active',
       companyId: company.id,
+      branchId: mainBranch.id,
     },
   });
 
@@ -193,8 +214,9 @@ async function main() {
   });
 
   console.log('✅ Seed completed successfully!');
-  console.log('   Super Admin: admin@oboyyankee.gh / NexaAdmin@2026!');
-  console.log('   Company Admin: owner@oboyyankee.gh / Admin@2026!');
+  console.log(`   Branch: ${mainBranch.name} (${mainBranch.code})`);
+  console.log(`   Super Admin: ${process.env.SUPER_ADMIN_EMAIL || 'admin@oboyyankee.gh'} / ***`);
+  console.log(`   Company Admin: ${process.env.COMPANY_ADMIN_EMAIL || 'owner@oboyyankee.gh'} / ***`);
 }
 
 main()
