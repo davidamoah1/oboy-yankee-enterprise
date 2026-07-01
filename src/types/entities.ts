@@ -22,6 +22,9 @@ export interface Product extends BaseEntity {
   unit: string | null;
   companyId: string;
   branchId: string | null;
+  category?: { name: string } | string;
+  brand?: { name: string } | null;
+  [key: string]: any;
 }
 
 export interface Sale extends BaseEntity {

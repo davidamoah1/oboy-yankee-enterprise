@@ -88,13 +88,14 @@ export default function InventoryPage() {
   const products = fetchedProducts || [];
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const categories = ["All", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
+  const categories = ["All", ...Array.from(new Set(products.map(p => typeof p.category === 'string' ? p.category : (p.category as any)?.name).filter(Boolean) as string[]))];
 
   const isLowStock = (product: any) => {
-    const threshold = product.low_stock_threshold !== null && product.low_stock_threshold !== undefined 
-      ? product.low_stock_threshold 
-      : 10;
-    return product.stock_quantity <= threshold;
+    const stock = Number(product.stockQuantity ?? product.stock_quantity ?? 0);
+    const threshold = product.lowStockThreshold != null
+      ? Number(product.lowStockThreshold)
+      : (product.low_stock_threshold != null ? Number(product.low_stock_threshold) : 10);
+    return stock <= threshold;
   };
 
   // Toast notification when the app loads (on initial data load)
@@ -115,12 +116,12 @@ export default function InventoryPage() {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
                           (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())) ||
                           ((p as any).barcode && (p as any).barcode.toLowerCase().includes(search.toLowerCase()));
-    const matchesCategory = selectedCategory === "All" || p.category === selectedCategory;
+    const matchesCategory = selectedCategory === "All" || (typeof p.category === 'string' ? p.category : (p.category as any)?.name) === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   const lowStockCount = products.filter(isLowStock).length;
-  const totalStockValue = products.reduce((acc, p) => acc + (p.price * (p.stock_quantity || 0)), 0);
+  const totalStockValue = products.reduce((acc, p) => acc + (Number(p.price) * (Number(p.stockQuantity ?? p.stock_quantity) || 0)), 0);
 
   const handleDelete = async () => {
     if (confirmDelete.id) {
@@ -163,13 +164,13 @@ export default function InventoryPage() {
       sku,
       barcode,
       price,
-      stock_quantity,
-      low_stock_threshold: thresholdVal,
-      cost_price: costVal,
-      is_active: true,
+      stockQuantity: stock_quantity,
+      lowStockThreshold: thresholdVal,
+      costPrice: costVal,
+      isActive: true,
       description: null,
-      category_id: null,
-      image_url: null
+      categoryId: null,
+      imageUrl: null
     };
 
     // 1. Immediately insert optimistically to inventory list so there's zero UI visual latency
@@ -184,10 +185,10 @@ export default function InventoryPage() {
         sku,
         barcode,
         price,
-        stock_quantity,
-        low_stock_threshold: thresholdVal,
-        cost_price: costVal,
-        is_active: true
+        stockQuantity: stock_quantity,
+        reorderLevel: thresholdVal,
+        costPrice: costVal,
+        isActive: true
       });
 
       toast.success(`"${name}" is now live and synced!`, { id: toastId });
@@ -530,13 +531,13 @@ export default function InventoryPage() {
                           </div>
                           <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 leading-none italic">
                             Product ID: {product.id.padStart(6, '0')}{(product as any).barcode && ` • Barcode: ${(product as any).barcode}`}
-                            {product.low_stock_threshold !== null && product.low_stock_threshold !== undefined && ` • Threshold: ${product.low_stock_threshold}`}
+                            {(product.lowStockThreshold ?? product.low_stock_threshold) != null && ` • Threshold: ${product.lowStockThreshold ?? product.low_stock_threshold}`}
                           </span>
                        </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-black uppercase tracking-[0.2em] text-[8px] px-3 py-1 rounded-lg border-border/50 bg-muted/40 text-muted-foreground">
-                        {product.category}
+                        {typeof product.category === 'string' ? product.category : (product.category as any)?.name || 'Uncategorized'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
@@ -544,17 +545,17 @@ export default function InventoryPage() {
                           <span className={cn(
                              "text-lg font-black italic tracking-tighter",
                              isLowStock(product) ? "text-red-500" : ""
-                          )}>{product.stock_quantity}</span>
+                          )}>{Number(product.stockQuantity ?? product.stock_quantity ?? 0)}</span>
                           <div className="w-12 h-1 bg-muted rounded-full overflow-hidden mt-1">
                              <div 
                               className={cn("h-full", isLowStock(product) ? "bg-red-500" : "bg-primary")} 
-                              style={{ width: `${Math.min(product.stock_quantity, 100)}%` }} 
+                              style={{ width: `${Math.min(Number(product.stockQuantity ?? product.stock_quantity ?? 0), 100)}%` }} 
                              />
                           </div>
                        </div>
                     </TableCell>
                     <TableCell className="text-right">
-                       <span className="text-lg font-black italic tracking-tighter leading-none">₵{product.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                       <span className="text-lg font-black italic tracking-tighter leading-none">₵{Number(product.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -678,7 +679,7 @@ export default function InventoryPage() {
                         "text-lg font-black italic tracking-tighter",
                         isLowStock(product) ? "text-red-500 animate-pulse" : "text-foreground"
                       )}>
-                        {product.stock_quantity}
+                        {Number(product.stockQuantity ?? product.stock_quantity ?? 0)}
                       </span>
                       <span className="text-[9px] font-bold text-muted-foreground/60 uppercase">Units</span>
                     </div>
@@ -686,7 +687,7 @@ export default function InventoryPage() {
                     <div className="w-16 h-1 bg-muted rounded-full overflow-hidden mt-1.5">
                       <div 
                         className={cn("h-full", isLowStock(product) ? "bg-red-500" : "bg-primary")} 
-                        style={{ width: `${Math.min(product.stock_quantity, 100)}%` }} 
+                        style={{ width: `${Math.min(Number(product.stockQuantity ?? product.stock_quantity ?? 0), 100)}%` }} 
                       />
                     </div>
                   </div>
@@ -696,7 +697,7 @@ export default function InventoryPage() {
                       UNIT PRICE
                     </span>
                     <div className="text-lg font-black italic tracking-tighter text-emerald-500">
-                      ₵{product.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ₵{Number(product.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </div>
                     <span className="text-[8px] text-muted-foreground/50 uppercase tracking-wider block mt-0.5">
                       GHS (₵)
@@ -707,7 +708,7 @@ export default function InventoryPage() {
                 {/* Direct Action Drawer Button */}
                 <div className="flex items-center justify-between border-t border-border/40 pt-3 mt-1">
                   <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">
-                    {product.low_stock_threshold !== null && `Min Limit: ${product.low_stock_threshold}`}
+                    {(product.lowStockThreshold ?? product.low_stock_threshold) != null && `Min Limit: ${product.lowStockThreshold ?? product.low_stock_threshold}`}
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -797,13 +798,13 @@ export default function InventoryPage() {
           <div className="border border-gray-200 p-4 rounded-xl">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Total Stock Units</span>
             <span className="text-2xl font-extrabold text-black">
-              {filteredProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0)}
+              {filteredProducts.reduce((sum, p) => sum + (Number(p.stockQuantity ?? p.stock_quantity) || 0), 0)}
             </span>
           </div>
           <div className="border border-gray-200 p-4 rounded-xl">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Total Listed Value</span>
             <span className="text-2xl font-extrabold text-black">
-              ₵{filteredProducts.reduce((sum, p) => sum + (p.price * (p.stock_quantity || 0)), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ₵{filteredProducts.reduce((sum, p) => sum + (Number(p.price) * (Number(p.stockQuantity ?? p.stock_quantity) || 0)), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>
@@ -821,13 +822,13 @@ export default function InventoryPage() {
           </thead>
           <tbody>
             {filteredProducts.map((p) => {
-              const totalVal = Number(p.price) * (p.stock_quantity || 0);
+              const totalVal = Number(p.price) * (Number(p.stockQuantity ?? p.stock_quantity) || 0);
               return (
                 <tr key={p.id} className="border-b border-gray-200 text-xs">
                   <td className="py-3 font-mono font-bold text-gray-700">{p.sku}</td>
                   <td className="py-3 font-bold text-gray-900">{p.name}</td>
-                  <td className="py-3 text-gray-600">{p.category}</td>
-                  <td className="py-3 text-right font-bold text-gray-800">{p.stock_quantity}</td>
+                  <td className="py-3 text-gray-600">{typeof p.category === 'string' ? p.category : (p.category as any)?.name || 'Uncategorized'}</td>
+                  <td className="py-3 text-right font-bold text-gray-800">{Number(p.stockQuantity ?? p.stock_quantity ?? 0)}</td>
                   <td className="py-3 text-right font-semibold text-gray-800">₵{Number(p.price).toFixed(2)}</td>
                   <td className="py-3 text-right font-bold text-gray-900">₵{totalVal.toFixed(2)}</td>
                 </tr>
