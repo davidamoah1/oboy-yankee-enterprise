@@ -60,35 +60,6 @@ const FAQS = [
   }
 ];
 
-const INITIAL_TICKETS: SupportTicket[] = [
-  {
-    id: "NEX-TKT-3129",
-    subject: "Automated Telecel cashout delay troubleshooting",
-    category: "Payment & Subscription",
-    priority: "high",
-    status: "responded",
-    createdAt: "2026-05-20 10:45",
-    description: "Our cashier completed a checkout via MoMo but the payout hasn't arrived in the principal sub-wallet after 10 minutes.",
-    messages: [
-      { sender: "user", senderName: "Store Manager", content: "Our cashier completed a checkout via MoMo but the payout hasn't arrived in the principal sub-wallet after 10 minutes.", timestamp: "2026-05-20 10:45" },
-      { sender: "admin", senderName: "OBOY YANKEE Tech Support", content: "Hello! We detected a temporary API congestion from the telecom aggregator. The fund settlement batch has been re-queued and should resolve inside the next 15 minutes. We are monitoring.", timestamp: "2026-05-20 11:12" }
-    ]
-  },
-  {
-    id: "NEX-TKT-2910",
-    subject: "Requesting additional barcode hardware pairing support",
-    category: "POS & Printers",
-    priority: "low",
-    status: "resolved",
-    createdAt: "2026-05-18 14:00",
-    description: "We purchased a standard USB laser plug-and-play barcode scanner. Does it require custom configuration to sync with OBOY YANKEE ENTERPRISE?",
-    messages: [
-      { sender: "user", senderName: "Store Director", content: "We purchased a standard USB laser plug-and-play barcode scanner. Does it require custom configuration to sync with OBOY YANKEE ENTERPRISE?", timestamp: "2026-05-18 14:00" },
-      { sender: "admin", senderName: "OBOY YANKEE Support", content: "Hi! Any standard keyboard-emulating barcode scanner works out of the box. Just focus on the scanning bar in the POS or press 'Scan Item' and squeeze the trigger. The system automatically reads the SKU and checks out.", timestamp: "2026-05-18 15:30" }
-    ]
-  }
-];
-
 export default function SupportPage() {
   const { user } = useAuth();
   
@@ -119,11 +90,8 @@ export default function SupportPage() {
       try {
         setTickets(JSON.parse(saved));
       } catch (e) {
-        setTickets(INITIAL_TICKETS);
+        setTickets([]);
       }
-    } else {
-      localStorage.setItem(storageKey, JSON.stringify(INITIAL_TICKETS));
-      setTickets(INITIAL_TICKETS);
     }
   }, [storageKey]);
 

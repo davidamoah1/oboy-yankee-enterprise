@@ -67,17 +67,9 @@ type Customer = {
   trustScore?: number;  // Local customer credit trust ranking %
 };
 
-const INITIAL_CUSTOMERS: Customer[] = [
-  { id: "C-001", name: "David Amoah", email: "david@example.com", phone: "+233 24 123 4567", points: 850, totalSpent: 4200.50, lastVisit: "2024-05-11", tier: "Gold", debtBalance: 320.00, trustScore: 92 },
-  { id: "C-002", name: "Mary Appiah", email: "mary@example.com", phone: "+233 50 987 6543", points: 120, totalSpent: 850.00, lastVisit: "2024-05-08", tier: "Silver", debtBalance: 0.00, trustScore: 98 },
-  { id: "C-003", name: "Kwame Nkrumah", email: "kwame@example.com", phone: "+233 20 555 0199", points: 3400, totalSpent: 12800.00, lastVisit: "2024-05-10", tier: "VIP", debtBalance: 1250.00, trustScore: 85 },
-  { id: "C-004", name: "Abena Mansa", email: "abena@example.com", phone: "+233 27 333 4444", points: 45, totalSpent: 150.20, lastVisit: "2024-04-30", tier: "Standard", debtBalance: 55.00, trustScore: 95 },
-  { id: "C-005", name: "Isaac Newton", email: "isaac@example.com", phone: "+233 24 000 1111", points: 0, totalSpent: 0, lastVisit: "Joined Today", tier: "Standard", debtBalance: 0.00, trustScore: 100 },
-];
-
 export default function CustomersPage() {
   const { user } = useAuth();
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
   const [loading, setLoading] = useState(false);
@@ -108,7 +100,7 @@ export default function CustomersPage() {
       .then((response) => {
         setLoading(false);
         const data = response.data?.data || response.data || [];
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const mapped: Customer[] = data.map((c: any) => ({
             id: c.id,
             name: c.name,

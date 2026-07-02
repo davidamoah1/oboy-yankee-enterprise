@@ -46,16 +46,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { PlatformTransaction } from "@/types/super-admin";
 
-const INITIAL_TRANSACTIONS: PlatformTransaction[] = [
-  { id: "TX-9021", tenantName: "Accra Mart", tenantId: "1", amount: 1540.00, currency: "GHS", status: "success", type: "commission", timestamp: "2024-05-11 10:30", reference: "MTN-99238" },
-  { id: "TX-9022", tenantName: "Kumasi Elec", tenantId: "2", amount: 24500.50, currency: "GHS", status: "success", type: "subscription", timestamp: "2024-05-11 11:15", reference: "VISA-1120" },
-  { id: "TX-9023", tenantName: "Tamale Fashion", tenantId: "3", amount: 450.00, currency: "GHS", status: "flagged", type: "commission", timestamp: "2024-05-11 11:45", reference: "CASH-442" },
-  { id: "TX-9024", tenantName: "Accra Mart", tenantId: "1", amount: 89.90, currency: "GHS", status: "pending", type: "commission", timestamp: "2024-05-11 12:00", reference: "MTN-10211" },
-  { id: "TX-9025", tenantName: "Adisadel Books", tenantId: "5", amount: 1200.00, currency: "GHS", status: "success", type: "subscription", timestamp: "2024-05-11 12:30", reference: "MAST-8821" },
-];
-
 export default function AdminTransactionsPage() {
-  const [transactions, setTransactions] = useState<PlatformTransaction[]>(INITIAL_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<PlatformTransaction[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PlatformTransaction["status"] | "all">("all");
   const [typeFilter, setTypeFilter] = useState<PlatformTransaction["type"] | "all">("all");
@@ -123,10 +115,10 @@ export default function AdminTransactionsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
          {[
-           { label: "Total Volume", val: "₵ 128,430", trend: "+14.2%", icon: TrendingUp, positive: true },
-           { label: "Flagged Payments", val: "₵ 2,850", trend: "4 Flags", icon: AlertTriangle, positive: false },
-           { label: "Total Commissions", val: "₵ 15,220", trend: "+8.1%", icon: Zap, positive: true },
-           { label: "Success Rate", val: "99.2%", trend: "Optimal", icon: CheckCircle2, positive: true },
+           { label: "Total Volume", val: `₵ ${transactions.reduce((sum, t) => sum + t.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, trend: `${transactions.length} TXNs`, icon: TrendingUp, positive: true },
+           { label: "Flagged Payments", val: `₵ ${transactions.filter(t => t.status === 'flagged').reduce((sum, t) => sum + t.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, trend: `${transactions.filter(t => t.status === 'flagged').length} Flags`, icon: AlertTriangle, positive: false },
+           { label: "Pending", val: `₵ ${transactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + t.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, trend: `${transactions.filter(t => t.status === 'pending').length} Pending`, icon: Zap, positive: true },
+           { label: "Success Rate", val: transactions.length > 0 ? `${Math.round((transactions.filter(t => t.status === 'success').length / transactions.length) * 100)}%` : '—', trend: transactions.length > 0 ? "Processed" : "No data", icon: CheckCircle2, positive: true },
          ].map((stat, i) => (
            <Card key={i} className="border-none shadow-2xl bg-slate-900/40 backdrop-blur-xl rounded-[30px] border border-white/5 group hover:border-primary/20 transition-all overflow-hidden relative">
              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">

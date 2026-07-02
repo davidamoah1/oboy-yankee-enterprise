@@ -33,16 +33,9 @@ import {
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 
-const INITIAL_SUPPLIERS = [
-  { id: "1", name: "Global Textiles Ltd", contact: "Kwesi Appiah", phone: "+233 24 000 1111", email: "orders@global.com", category: "Fabric", activeOrders: 3, totalSpend: 25000 },
-  { id: "2", name: "Accra Electronics", contact: "John Doe", phone: "+233 55 222 3333", email: "sales@accra-elec.gh", category: "Gadgets", activeOrders: 0, totalSpend: 12400 },
-  { id: "3", name: "Packaging Plus", contact: "Sarah Mensah", phone: "+233 20 444 5555", email: "sarah@packplus.com", category: "Material", activeOrders: 1, totalSpend: 5600 },
-  { id: "4", name: "Tech Solutions GH", contact: "Victor Owusu", phone: "+233 24 666 7777", email: "victor@techsol.gh", category: "Software", activeOrders: 5, totalSpend: 45000 },
-];
-
 export default function SuppliersPage() {
   const { user } = useAuth();
-  const [suppliers, setSuppliers] = useState<any[]>(INITIAL_SUPPLIERS);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -62,7 +55,7 @@ export default function SuppliersPage() {
       .then((response) => {
         setLoading(false);
         const data = response.data?.data || response.data || [];
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const mapped = data.map((s: any) => ({
             id: s.id,
             name: s.name,

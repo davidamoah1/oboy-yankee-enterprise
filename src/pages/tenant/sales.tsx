@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
   Search, 
@@ -41,6 +41,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import apiClient from "@/lib/api-client";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -64,29 +65,50 @@ type Sale = {
   status: "Completed" | "Voided";
 };
 
-const INITIAL_SALES: Sale[] = [
-  { id: "S-9021", customer: "Walk-in Customer", items: 4, amount: 450.50, method: "Cash", timestamp: "2024-05-11 15:30", status: "Completed" },
-  { id: "S-9022", customer: "David Amoah", items: 2, amount: 1200.00, method: "MoMo", timestamp: "2024-05-11 14:45", status: "Completed" },
-  { id: "S-9023", customer: "Mary Appiah", items: 12, amount: 890.20, method: "Card", timestamp: "2024-05-11 13:20", status: "Completed" },
-  { id: "S-9024", customer: "Walk-in Customer", items: 1, amount: 25.00, method: "Cash", timestamp: "2024-05-11 12:15", status: "Completed" },
-  { id: "S-9025", customer: "Kwame Nkrumah", items: 6, amount: 3450.00, method: "MoMo", timestamp: "2024-05-11 11:00", status: "Completed" },
-];
-
 const MINI_CHART_DATA = [
   { val: 100 }, { val: 300 }, { val: 200 }, { val: 500 }, { val: 400 }, { val: 600 }, { val: 800 }
 ];
 
 export default function SalesHistoryPage() {
-  const [sales, setSales] = useState<Sale[]>(INITIAL_SALES);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+
+  useEffect(() => {
+    apiClient.get('/api/sales')
+      .then((response) => {
+        const data = response.data || [];
+        const mapped: Sale[] = data.map((s: any) => ({
+          id: s.receiptNumber || s.id,
+          customer: s.customerName || (s.user?.fullName) || 'Walk-in Customer',
+          items: s.items?.length || 0,
+          amount: Number(s.totalAmount) || 0,
+          method: (s.paymentMethod || 'Cash') as Sale['method'],
+          timestamp: new Date(s.createdAt).toLocaleString(),
+          status: s.isVoided ? 'Voided' : 'Completed' as Sale['status'],
+        }));
+        setSales(mapped);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error loading sales:', err);
+        toast.error('Failed to load sales history');
+        setLoading(false);
+      });
+  }, []);
 
   const totalRevenue = sales.filter(s => s.status === 'Completed').reduce((sum, s) => sum + s.amount, 0);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirmModal.id) {
-      setSales(prev => prev.map(s => s.id === confirmModal.id ? { ...s, status: "Voided" as const } : s));
-      toast.success("Transaction voided successfully");
+      try {
+        await apiClient.post(`/api/sales/${confirmModal.id}/void`);
+        setSales(prev => prev.map(s => s.id === confirmModal.id ? { ...s, status: "Voided" as const } : s));
+        toast.success("Transaction voided successfully");
+      } catch (err: any) {
+        toast.error(err.response?.data?.error || 'Failed to void transaction');
+      }
       setConfirmModal({ isOpen: false, id: null });
     }
   };
@@ -206,7 +228,7 @@ export default function SalesHistoryPage() {
                    </div>
                    <div className="space-y-0.5">
                       <p className="text-[11px] font-black uppercase italic italic leading-none">Checkout Velocity</p>
-                      <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest leading-none italic">14.2 ops / hour</p>
+                      <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest leading-none italic">{sales.length > 0 ? `${(sales.length / 8).toFixed(1)} ops / hour` : 'No data yet'}</p>
                    </div>
                 </div>
             </div>

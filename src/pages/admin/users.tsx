@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   Search, 
   Filter, 
@@ -49,25 +49,19 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import apiClient from "@/lib/api-client";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { User, UserRole, UserStatus } from "@/types/super-admin";
 
-const INITIAL_USERS: User[] = [
-  { id: "1", name: "Kofi Mensah", email: "kofi@accramart.com", role: "tenant_admin", status: "active", tenant: "Accra Mart", lastLogin: "2024-05-11 08:30", createdAt: "2024-01-15" },
-  { id: "2", name: "Ama Serwaa", email: "ama@kumasi.com", role: "tenant_admin", status: "active", tenant: "Kumasi Elec", lastLogin: "2024-05-10 14:20", createdAt: "2024-02-10" },
-  { id: "3", name: "Ibrahim Ali", email: "ibrahim@tamale.com", role: "tenant_admin", status: "blocked", tenant: "Tamale Fashion", lastLogin: "2024-04-15 11:00", createdAt: "2024-03-05" },
-  { id: "4", name: "Samuel Osei", email: "samuel@internal.os", role: "super_admin", status: "active", tenant: "SME OS Platform", lastLogin: "2024-05-11 10:15", createdAt: "2023-12-01" },
-  { id: "5", name: "Yaa Prah", email: "yaa@accramart.com", role: "staff", status: "active", tenant: "Accra Mart", lastLogin: "2024-05-11 09:00", createdAt: "2024-04-01" },
-];
-
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 8;
   
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -78,9 +72,38 @@ export default function AdminUsersPage() {
     action: "" 
   });
 
-  const handleStatusChange = (id: string, newStatus: UserStatus) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, status: newStatus } : u));
-    toast.success(`User access ${newStatus === "active" ? "restored" : "revoked"} successfully`);
+  useEffect(() => {
+    apiClient.get('/api/users')
+      .then((response) => {
+        const data = response.data || [];
+        const mapped: User[] = data.map((u: any) => ({
+          id: u.id,
+          name: u.fullName || u.email,
+          email: u.email,
+          role: u.role as UserRole,
+          status: (u.status === 'suspended' ? 'blocked' : u.status) as UserStatus,
+          tenant: u.companyId || 'N/A',
+          lastLogin: u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never',
+          createdAt: u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : '',
+        }));
+        setUsers(mapped);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error loading users:', err);
+        toast.error('Failed to load users');
+        setLoading(false);
+      });
+  }, []);
+
+  const handleStatusChange = async (id: string, newStatus: UserStatus) => {
+    try {
+      await apiClient.put(`/api/users/${id}`, { status: newStatus === 'blocked' ? 'suspended' : 'active' });
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, status: newStatus } : u));
+      toast.success(`User access ${newStatus === "active" ? "restored" : "revoked"} successfully`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update user status');
+    }
   };
 
   const handleRoleChange = (id: string, newRole: UserRole) => {

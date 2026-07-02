@@ -47,70 +47,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Ticket, TicketMessage, TicketPriority, TicketStatus } from "@/types/super-admin";
 
-const INITIAL_TICKETS: Ticket[] = [
-  { 
-    id: "TKT-441", 
-    tenant: "Accra Mart", 
-    tenantId: "1",
-    subject: "MoMo Payment integration failing on POS-02", 
-    priority: "critical", 
-    status: "open", 
-    assignee: null, 
-    lastUpdate: "10 mins ago",
-    createdAt: "2024-05-11 10:00",
-    messages: [
-      { id: "m1", senderId: "u1", senderName: "Kofi Mensah", senderRole: "user", content: "We are trying to process MoMo payments but it keeps timing out on POS-02.", timestamp: "2024-05-11 10:00" }
-    ]
-  },
-  { 
-    id: "TKT-432", 
-    tenant: "Kumasi Elec", 
-    tenantId: "2",
-    subject: "Request for higher SKUs limit in Business Plan", 
-    priority: "medium", 
-    status: "responded", 
-    assignee: "Kofi Admin", 
-    lastUpdate: "2 hours ago",
-    createdAt: "2024-05-11 08:30",
-    messages: [
-      { id: "m1", senderId: "u2", senderName: "Ama Serwaa", senderRole: "user", content: "Can we increase our SKU limit? We are hitting the Business plan cap.", timestamp: "2024-05-11 08:30" },
-      { id: "m2", senderId: "a1", senderName: "Kofi Admin", senderRole: "admin", content: "I'll check with the product team on this.", timestamp: "2024-05-11 08:45" }
-    ]
-  },
-  { 
-    id: "TKT-415", 
-    tenant: "Tamale Fashion", 
-    tenantId: "3",
-    subject: "Dispute over last monthly subscription charge", 
-    priority: "high", 
-    status: "open", 
-    assignee: null, 
-    lastUpdate: "5 hours ago",
-    createdAt: "2024-05-11 05:00",
-    messages: [
-      { id: "m1", senderId: "u3", senderName: "Ibrahim Ali", senderRole: "user", content: "We were charged twice for the month of April.", timestamp: "2024-05-11 05:00" }
-    ]
-  },
-  { 
-    id: "TKT-390", 
-    tenant: "Adisadel Books", 
-    tenantId: "5",
-    subject: "Unable to export inventory CSV", 
-    priority: "low", 
-    status: "resolved", 
-    assignee: "Ama Admin", 
-    lastUpdate: "1 day ago",
-    createdAt: "2024-05-10 14:00",
-    messages: [
-      { id: "m1", senderId: "u4", senderName: "John Doe", senderRole: "user", content: "The CSV export button isn't downloading anything.", timestamp: "2024-05-10 14:00" },
-      { id: "m2", senderId: "a2", senderName: "Ama Admin", senderRole: "admin", content: "This was a known bug, we've pushed a fix.", timestamp: "2024-05-10 14:15" },
-      { id: "m3", senderId: "u4", senderName: "John Doe", senderRole: "user", content: "Confirmed, it works now. Thanks!", timestamp: "2024-05-10 14:20" }
-    ]
-  },
-];
-
 export default function AdminSupportPage() {
-  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');

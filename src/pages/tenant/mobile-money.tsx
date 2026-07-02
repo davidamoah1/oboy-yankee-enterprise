@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { 
   Smartphone, 
@@ -40,18 +40,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-
-const INITIAL_MOMO_TRANSACTIONS = [
-  { id: "TX-998273", type: "Inward", provider: "MTN", amount: 450.00, status: "Completed", client: "Kwame Mensah", date: "2026-05-11 10:45" },
-  { id: "TX-998274", type: "Outward", provider: "Telecel", amount: 1200.00, status: "Completed", client: "Supplier B", date: "2026-05-11 09:30" },
-  { id: "TX-998275", type: "Inward", provider: "AirtelTigo", amount: 85.00, status: "Pending", client: "Ama Serwaa", date: "2026-05-11 08:15" },
-  { id: "TX-998276", type: "Inward", provider: "MTN", amount: 220.00, status: "Failed", client: "System Test", date: "2026-05-10 22:00" },
-  { id: "TX-998277", type: "Inward", provider: "MTN", amount: 1500.00, status: "Completed", client: "Bulk Order Hub", date: "2026-05-10 18:45" },
-];
+import apiClient from "@/lib/api-client";
 
 export default function MobileMoneyPage() {
   const [activeTab, setActiveTab] = useState("all");
-  const [transactions, setTransactions] = useState(INITIAL_MOMO_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   
   // Ghana MoMo form states
@@ -70,6 +63,26 @@ export default function MobileMoneyPage() {
     inputRequired: boolean;
     provider: string;
   } | null>(null);
+
+  useEffect(() => {
+    apiClient.get('/api/airtime')
+      .then((response) => {
+        const data = response.data || [];
+        const mapped = data.map((t: any) => ({
+          id: t.id,
+          type: t.type || "Inward",
+          provider: t.network || t.provider || "MTN",
+          amount: Number(t.amount) || 0,
+          status: t.status || "Completed",
+          client: t.customerName || t.phoneNumber || "Customer",
+          date: t.createdAt ? new Date(t.createdAt).toLocaleString() : "",
+        }));
+        setTransactions(mapped);
+      })
+      .catch((err) => {
+        console.error('Error loading mobile money transactions:', err);
+      });
+  }, []);
 
   const triggerUSSDDialer = (shortcode: string) => {
     let text = "";

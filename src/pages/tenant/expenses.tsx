@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Plus, 
   Search, 
@@ -41,6 +41,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import apiClient from "@/lib/api-client";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -60,29 +61,49 @@ type Expense = {
   status: "paid" | "pending";
 };
 
-const INITIAL_EXPENSES: Expense[] = [
-  { id: "EXP-001", category: "Inventory", description: "Fresh produce restock", amount: 1200.50, date: "2024-05-11", status: "paid" },
-  { id: "EXP-002", category: "Utilities", description: "Electricity bill May", amount: 450.00, date: "2024-05-10", status: "paid" },
-  { id: "EXP-003", category: "Rent", description: "Shop floor rent", amount: 2500.00, date: "2024-05-01", status: "paid" },
-  { id: "EXP-004", category: "Marketing", description: "Social media ads", amount: 300.00, date: "2024-05-08", status: "pending" },
-  { id: "EXP-005", category: "Salaries", description: "Staff wages week 2", amount: 1800.00, date: "2024-05-11", status: "paid" },
-];
-
 const MINI_CHART_DATA = [
   { val: 400 }, { val: 300 }, { val: 500 }, { val: 200 }, { val: 600 }, { val: 400 }, { val: 700 }
 ];
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+
+  useEffect(() => {
+    apiClient.get('/api/expenses')
+      .then((response) => {
+        const data = response.data || [];
+        const mapped: Expense[] = data.map((e: any) => ({
+          id: e.id,
+          category: (e.category || 'Other') as Expense['category'],
+          description: e.description || '',
+          amount: Number(e.amount) || 0,
+          date: e.date ? new Date(e.date).toISOString().split('T')[0] : '',
+          status: (e.status || 'paid') as Expense['status'],
+        }));
+        setExpenses(mapped);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error loading expenses:', err);
+        toast.error('Failed to load expenses');
+        setLoading(false);
+      });
+  }, []);
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirmModal.id) {
-      setExpenses(prev => prev.filter(e => e.id !== confirmModal.id));
-      toast.success("Expense record archived from systems");
+      try {
+        await apiClient.delete(`/api/expenses/${confirmModal.id}`);
+        setExpenses(prev => prev.filter(e => e.id !== confirmModal.id));
+        toast.success("Expense record archived from systems");
+      } catch (err: any) {
+        toast.error(err.response?.data?.error || 'Failed to delete expense');
+      }
       setConfirmModal({ isOpen: false, id: null });
     }
   };
@@ -134,7 +155,7 @@ export default function ExpensesPage() {
                 </div>
                 <div>
                    <h3 className="text-3xl font-black italic tracking-tighter leading-none mt-1">₵ {totalExpenses.toLocaleString()}</h3>
-                   <p className="text-[10px] font-bold mt-4 uppercase tracking-widest leading-none opacity-80 italic">-8.4% Efficiency Delta</p>
+                   <p className="text-[10px] font-bold mt-4 uppercase tracking-widest leading-none opacity-80 italic">{expenses.length} expense record(s) this period</p>
                 </div>
             </div>
             <div className="absolute right-[-10px] bottom-[-10px] rotate-12 opacity-10">
@@ -151,8 +172,8 @@ export default function ExpensesPage() {
                    </div>
                 </div>
                 <div>
-                   <h3 className="text-3xl font-black italic tracking-tighter leading-none mt-1">₵ 300.20 <span className="text-xs font-black uppercase not-italic opacity-40 italic tracking-tighter">Due</span></h3>
-                   <p className="text-[10px] font-bold text-muted-foreground mt-4 uppercase tracking-widest leading-none">Net liability in current cycle</p>
+                   <h3 className="text-3xl font-black italic tracking-tighter leading-none mt-1">₵ {expenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-xs font-black uppercase not-italic opacity-40 italic tracking-tighter">Due</span></h3>
+                   <p className="text-[10px] font-bold text-muted-foreground mt-4 uppercase tracking-widest leading-none">{expenses.filter(e => e.status === 'pending').length} pending payout(s) in current cycle</p>
                 </div>
             </div>
          </Card>

@@ -64,15 +64,6 @@ type Product = {
   status: "In Stock" | "Low Stock" | "Out of Stock";
 };
 
-const INITIAL_INVENTORY: Product[] = [
-  { id: "1", name: "Ghanaian Chocolate", category: "Snacks", sku: "SNK-001", stock: 50, price: 15.00, status: "In Stock" },
-  { id: "2", name: "Premium Tea", category: "Beverages", sku: "BEV-042", stock: 24, price: 45.00, status: "In Stock" },
-  { id: "3", name: "Local Honey (500g)", category: "Groceries", sku: "GRC-99", stock: 12, price: 65.00, status: "Low Stock" },
-  { id: "4", name: "Natural Shea Butter", category: "Self Care", sku: "BTY-12", stock: 8, price: 35.00, status: "Low Stock" },
-  { id: "5", name: "Woven Basket", category: "Lifestyle", sku: "LFT-88", stock: 5, price: 120.00, status: "Low Stock" },
-  { id: "6", name: "Ginger Powder", category: "Spices", sku: "SPC-01", stock: 40, price: 25.00, status: "In Stock" },
-];
-
 import { useProducts } from "@/features/inventory/hooks/use-products";
 import { apiClient } from "@/lib/api-client";
 import { CsvImportDialog } from "@/components/tenant/csv-import-dialog";
