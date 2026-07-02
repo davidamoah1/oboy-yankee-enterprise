@@ -61,17 +61,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tenant, EntityStatus, EntityPlan } from "@/types/super-admin";
-import { platformService } from "@/features/super-admin/services/platform-service";
+import apiClient from "@/lib/api-client";
 
 export default function AdminTenantsPage() {
-  const [tenants, setTenants] = useState<Tenant[]>(() => {
-    try {
-      return platformService.getFallbackTenantsSync();
-    } catch (err) {
-      return [];
-    }
-  });
-  const [loading, setLoading] = useState(false);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<EntityStatus | 'all'>('all');
   const [planFilter, setPlanFilter] = useState<EntityPlan | 'all'>('all');
@@ -92,12 +86,12 @@ export default function AdminTenantsPage() {
 
   const loadTenants = async () => {
     try {
-      const data = await platformService.getTenants();
-      if (data && data.length > 0) {
+      const { data } = await apiClient.get('/api/admin/tenants');
+      if (data) {
         setTenants(data);
       }
     } catch (error) {
-      console.warn("Background shop telemetry query failed, active local fallback retained:", error);
+      console.warn("Failed to load tenants:", error);
     } finally {
       setLoading(false);
     }
@@ -118,7 +112,7 @@ export default function AdminTenantsPage() {
   const handleStatusChange = async (id: string, newStatus: EntityStatus) => {
     try {
       const dbStatus = newStatus === 'active' ? 'active' : 'suspended';
-      await platformService.updateTenantStatus(id, dbStatus);
+      await apiClient.patch(`/api/admin/tenants/${id}/status`, { status: dbStatus });
       setTenants(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
       toast.success(`Platform Node ${newStatus.toUpperCase()}`);
     } catch (err: any) {
@@ -129,7 +123,7 @@ export default function AdminTenantsPage() {
   const handleDelete = async () => {
     if (confirmModal.tenantId) {
       try {
-        await platformService.deleteTenant(confirmModal.tenantId);
+        await apiClient.delete(`/api/admin/tenants/${confirmModal.tenantId}`);
         setTenants(prev => prev.filter(t => t.id !== confirmModal.tenantId));
         toast.success("Platform Node Decommissioned");
         setConfirmModal({ isOpen: false, tenantId: null, action: "" });
@@ -200,7 +194,7 @@ export default function AdminTenantsPage() {
       const dbStatus = newStatus === 'active' ? 'active' : 'suspended';
       
       await Promise.all(
-        selectedTenantIds.map(id => platformService.updateTenantStatus(id, dbStatus))
+        selectedTenantIds.map(id => apiClient.patch(`/api/admin/tenants/${id}/status`, { status: dbStatus }))
       );
       
       setTenants(prev => prev.map(t => selectedTenantIds.includes(t.id) ? { ...t, status: newStatus } : t));
@@ -222,7 +216,7 @@ export default function AdminTenantsPage() {
     try {
       setBulkActionExecuting(true);
       await Promise.all(
-        selectedTenantIds.map(id => platformService.deleteTenant(id))
+        selectedTenantIds.map(id => apiClient.delete(`/api/admin/tenants/${id}`))
       );
       
       setTenants(prev => prev.filter(t => !selectedTenantIds.includes(t.id)));

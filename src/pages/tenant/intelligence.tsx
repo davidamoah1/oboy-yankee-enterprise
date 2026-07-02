@@ -156,17 +156,22 @@ export default function OmniBizIntelligencePage() {
           hasEnoughData = true;
         }
 
-        // --- PREVENT EMPTY COCKPIT BY INVENTING INTELLIGENT SIMULATION ALIGNED WITH INDUSTRY CATEGORY ---
         if (!hasEnoughData) {
-          setDataReconstructed(true);
-          // Seed beautiful data matching real industry
-          const computedData = generateSimulatedData(industry, dbCustomers, dbProducts);
-          setCustomers(computedData.customers);
-          setAffinities(computedData.affinities);
-          setForecast(computedData.forecast);
-          setStockPredictions(computedData.stockPredictions);
-          setCampaigns(computedData.campaigns);
-          setStats(computedData.stats);
+          setDataReconstructed(false);
+          // Not enough real data — show empty states instead of fake data
+          setCustomers([]);
+          setAffinities([]);
+          setForecast([]);
+          setStockPredictions([]);
+          setCampaigns([]);
+          setStats({
+            totalSales: 0,
+            aov: 0,
+            activePercent: 0,
+            clvAverage: 0,
+            retentionRate: 0,
+            revenueGrowth: 0
+          });
         } else {
           setDataReconstructed(false);
           // Standard pipeline: Process actual database tables with state-of-the-art BI math
@@ -179,15 +184,21 @@ export default function OmniBizIntelligencePage() {
           setStats(processed.stats);
         }
       } catch (err: any) {
-        console.error("API analytics analysis failed. Falling back to local computation:", err);
-        setErrorMsg("Failed to query some API segments. Running local mock computations.");
-        const fallback = generateSimulatedData(industry, [], []);
-        setCustomers(fallback.customers);
-        setAffinities(fallback.affinities);
-        setForecast(fallback.forecast);
-        setStockPredictions(fallback.stockPredictions);
-        setCampaigns(fallback.campaigns);
-        setStats(fallback.stats);
+        console.error("API analytics analysis failed:", err);
+        setErrorMsg("Failed to load analytics data. Please try again later.");
+        setCustomers([]);
+        setAffinities([]);
+        setForecast([]);
+        setStockPredictions([]);
+        setCampaigns([]);
+        setStats({
+          totalSales: 0,
+          aov: 0,
+          activePercent: 0,
+          clvAverage: 0,
+          retentionRate: 0,
+          revenueGrowth: 0
+        });
       } finally {
         setLoading(false);
       }
@@ -522,235 +533,7 @@ export default function OmniBizIntelligencePage() {
     };
   }
 
-  // ------------------------- SIMULATOR FALLBACK DATA GENERATOR -------------------------
-  
-  function generateSimulatedData(industryName: string, actualCustomers: any[], actualProducts: any[]) {
-    // Generate simulated customer personas based on actual lists or elegant profiles
-    const customerNames = actualCustomers.length > 0 
-      ? actualCustomers.map(c => c.name) 
-      : ["Kofi Mensah", "Abena Osei", "Kwame Boateng", "Yaa Asantewaa Ltd", "Amma Serwaah", "Yaw Addo", "Ekow Taylor", "Efua Ansah", "Uncle Joe Dist", "Aisha Ibrahim"];
-    
-    const productCatalog = actualProducts.length > 0
-      ? actualProducts.map(p => ({ name: p.name, sku: p.sku || "SKU-MOCK", category: p.category || "General", price: p.price, stock: p.stock_quantity }))
-      : industryName === "Pharmacy"
-        ? [
-            { name: "Amoxicillin 500mg", sku: "MED-001", category: "Antibiotics", price: 65, stock: 45 },
-            { name: "Paracetamol tablets", sku: "MED-002", category: "Analgesics", price: 12, stock: 120 },
-            { name: "Vitamin C Syrup 150ml", sku: "MED-003", category: "Supplements", price: 45, stock: 24 },
-            { name: "Ibuprofen 400mg", sku: "MED-004", category: "Analgesics", price: 28, stock: 8 },
-            { name: "Metformin 850mg", sku: "MED-005", category: "Diabetes", price: 110, stock: 35 },
-            { name: "Artemether + Lumefantrine (Malaria)", sku: "MED-006", category: "AntIMALARIALS", price: 55, stock: 3 }
-          ]
-        : industryName === "Restaurant"
-          ? [
-              { name: "Jollof Rice with Chicken Extra", sku: "FOOD-001", category: "Main Course", price: 60, stock: 100 },
-              { name: "Spicy Goat Soup (Fufu)", sku: "FOOD-002", category: "Traditional Soups", price: 75, stock: 50 },
-              { name: "Red Red with Plantain", sku: "FOOD-003", category: "Local Dishes", price: 45, stock: 120 },
-              { name: "Guinness bottle (Large)", sku: "BEV-001", category: "Beverages", price: 25, stock: 14 },
-              { name: "Kelewele Box (Spiced Plantain)", sku: "SIDE-001", category: "Appetizers", price: 30, stock: 9 },
-              { name: "Fresh Sobolo Juice (M)", sku: "BEV-002", category: "Beverages", price: 18, stock: 50 }
-            ]
-          : [
-              { name: "Premium Sunflower Cooking Oil 5L", sku: "PROV-001", category: "Groceries", price: 245, stock: 12 },
-              { name: "Royal Feast Jasmine Rice 25kg", sku: "PROV-002", category: "Grains", price: 580, stock: 4 },
-              { name: "Ideal Evaporated Milk 170g", sku: "PROV-003", category: "Canned Food", price: 15, stock: 160 },
-              { name: "Milo Chocolate Canister 400g", sku: "PROV-004", category: "Beverages", price: 52, stock: 9 },
-              { name: "Geisha Mackerel in Tomato 425g", sku: "PROV-005", category: "Canned Food", price: 24, stock: 2 }
-            ];
-
-    // Generate simulated customers with RFM segments
-    const simCustomers: CustomerMetric[] = customerNames.map((name, i) => {
-      const frequency = i === 0 ? 16 : i === 1 ? 12 : i === 2 ? 8 : i === 3 ? 6 : i === 4 ? 4 : i === 5 ? 2 : i === 6 ? 1 : 2;
-      const totalSpent = Math.round(frequency * (140 + Math.random() * 220));
-      const recencyDays = i === 0 ? 2 : i === 1 ? 5 : i === 2 ? 14 : i === 3 ? 34 : i === 4 ? 48 : i === 5 ? 110 : i === 6 ? 210 : 80;
-      const avgOrderValue = Math.round(totalSpent / frequency);
-      const clv = Math.round(avgOrderValue * frequency * 2.4);
-
-      // Decile assignment
-      const recencyScore = recencyDays < 7 ? 5 : recencyDays < 20 ? 4 : recencyDays < 45 ? 3 : recencyDays < 90 ? 2 : 1;
-      const frequencyScore = frequency >= 12 ? 5 : frequency >= 8 ? 4 : frequency >= 5 ? 3 : frequency >= 3 ? 2 : 1;
-      const monetaryScore = totalSpent > 3500 ? 5 : totalSpent > 1800 ? 4 : totalSpent > 900 ? 3 : totalSpent > 300 ? 2 : 1;
-      const totalScore = recencyScore + frequencyScore + monetaryScore;
-      
-      let segment = 'Loyal';
-      if (recencyScore >= 4 && frequencyScore >= 4) segment = 'VIP Customer';
-      else if (recencyScore === 5 && frequencyScore <= 1) segment = 'New';
-      else if (recencyScore <= 2 && frequencyScore >= 3) segment = 'At Risk';
-      else if (recencyScore === 1 && frequencyScore >= 2) segment = 'Dormant';
-      else if (recencyScore === 1) segment = 'Lost';
-
-      return {
-        id: `sim-cust-${i + 1}`,
-        name,
-        email: `${name.toLowerCase().replace(/\s/g, '')}@omnimock.com`,
-        phone: `+233 24 ${400000 + Math.round(Math.random() * 499999)}`,
-        tier: totalScore >= 12 ? 'VIP' : totalScore >= 9 ? 'Gold' : totalScore >= 6 ? 'Silver' : 'Standard',
-        totalSpent,
-        frequency,
-        recencyDays,
-        avgOrderValue,
-        lastPurchaseDate: new Date(Date.now() - recencyDays * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        registeredDate: new Date(Date.now() - (recencyDays + frequency * 10 + 30) * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        clv,
-        rfm: { recencyScore, frequencyScore, monetaryScore, totalScore, segment }
-      };
-    });
-
-    // Generate affinities based on common pairs
-    const simAffinities: ProductAffinity[] = [
-      {
-        id: 'sim-aff-1',
-        itemA: { id: 'p-1', name: productCatalog[0].name },
-        itemB: { id: 'p-2', name: productCatalog[1].name },
-        coOccurrences: 42,
-        confidence: 88,
-        lift: 3.25
-      },
-      {
-        id: 'sim-aff-2',
-        itemA: { id: 'p-3', name: productCatalog[2].name },
-        itemB: { id: 'p-4', name: productCatalog[3].name },
-        coOccurrences: 28,
-        confidence: 76,
-        lift: 2.9
-      },
-      {
-        id: 'sim-aff-3',
-        itemA: { id: 'p-5', name: productCatalog[4].name },
-        itemB: { id: 'p-0', name: productCatalog[0].name },
-        coOccurrences: 24,
-        confidence: 68,
-        lift: 2.1
-      }
-    ];
-
-    if (productCatalog[5]) {
-      simAffinities.push({
-        id: 'sim-aff-4',
-        itemA: { id: 'p-1', name: productCatalog[1].name },
-        itemB: { id: 'p-5', name: productCatalog[5].name },
-        coOccurrences: 19,
-        confidence: 60,
-        lift: 2.45
-      });
-    }
-
-    // Generate simulated forecasts with confidence intervals
-    const simForecast: SalesForecastPoint[] = [];
-    const dateToday = new Date();
-    
-    // Last 14 days historical values
-    for (let i = 14; i >= 1; i--) {
-      const d = new Date();
-      d.setDate(dateToday.getDate() - i);
-      simForecast.push({
-        date: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-        historical: Math.round(3500 + Math.random() * 2800),
-        forecasted: null,
-        lowerBound: null,
-        upperBound: null
-      });
-    }
-
-    // Next 14 days forecasted values
-    let forecastBase = 5200;
-    for (let i = 0; i <= 14; i++) {
-      const d = new Date();
-      d.setDate(dateToday.getDate() + i);
-      forecastBase = Math.round(forecastBase * 1.018); // smooth organic expansion multiplier
-      simForecast.push({
-        date: `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} (F)`,
-        historical: null,
-        forecasted: forecastBase,
-        lowerBound: Math.round(forecastBase * 0.9),
-        upperBound: Math.round(forecastBase * 1.15)
-      });
-    }
-
-    // Products Stock predictions
-    const simPredictions: StockoutPrediction[] = productCatalog.map((prod, idx) => {
-      const dailyVelocity = idx === 0 ? 3.4 : idx === 1 ? 4.8 : idx === 2 ? 1.8 : idx === 3 ? 1.2 : 0.6;
-      const daysToStockout = Math.round(prod.stock / dailyVelocity);
-      let riskStatus: 'critical' | 'alert' | 'secure' = 'secure';
-      if (daysToStockout <= 5) riskStatus = 'critical';
-      else if (daysToStockout <= 14) riskStatus = 'alert';
-
-      return {
-        id: `sim-prod-${idx}`,
-        name: prod.name,
-        sku: prod.sku,
-        category: prod.category,
-        currentStock: prod.stock,
-        dailyVelocity,
-        daysToStockout: isNaN(daysToStockout) ? 99 : daysToStockout,
-        riskStatus
-      };
-    }).sort((a, b) => a.daysToStockout - b.daysToStockout);
-
-    // Business campaigns
-    const simCampaigns: OptimizationCampaign[] = [
-      {
-        id: 'campaign-001',
-        title: "VIP Loyalty Catalyst",
-        description: `Trigger WhatsApp marketing and exclusive high-tier points boost to maximize VIP customer transaction sizes containing high-value items.`,
-        segmentTarget: "VIP Customers (Loyal but inactive this week)",
-        opportunityScore: 94,
-        revenueImpact: 4500,
-        category: 'loyalty',
-        actionLabel: "Broadcast Loyalty Blast",
-        messageTemplate: "Greetings {name}, we want to say thank you for being a VIP partner with us! Get 2x loyalty points on all transactions exceeding ₵500 this week."
-      },
-      {
-        id: 'campaign-002',
-        title: "Affinity-Based Bundle Discount",
-        description: `Capitalize on Market Basket Affinity scan: customers purchasing ${productCatalog[0].name} have an 88% probability to also purchase ${productCatalog[1].name}. Configure bundle package on POS.`,
-        segmentTarget: "All Retail Shoppers",
-        opportunityScore: 88,
-        revenueImpact: 2800,
-        category: 'bundle',
-        actionLabel: "Sync Bundle with POS terminal",
-        messageTemplate: "Instantly claim 10% discount when you select both {itemA} + {itemB} inside our POS terminal check-out today!"
-      },
-      {
-        id: 'campaign-003',
-        title: "At-Risk Customer Churn Rescue",
-        description: `Aisha Ibrahim & Uncle Joe Dist are at risk of churning (no visits for 45+ days). Dispatch instant promotional discount coupon.`,
-        segmentTarget: "At-Risk Segments",
-        opportunityScore: 82,
-        revenueImpact: 1900,
-        category: 'churn',
-        actionLabel: "Deploy Coupon Blast",
-        messageTemplate: "Hi {name}! Check out our fresh stocks. Take an immediate ₵50 off on search checkout code WELCOMEBACK50."
-      },
-      {
-        id: 'campaign-004',
-        title: "Slow-Moving Inventory Decongestion",
-        description: `Move excess inventory of ${productCatalog[2].name} displaying low daily turnover speed. Bundle with top fast movers.`,
-        segmentTarget: "Slowing Inventory Lines",
-        opportunityScore: 78,
-        revenueImpact: 3200,
-        category: 'cross_sell',
-        actionLabel: "Activate Bundle Campaign",
-        messageTemplate: "Special Limited Offer: Purchase {itemA} and get {itemB} absolutely free! Limited stock remains."
-      }
-    ];
-
-    return {
-      customers: simCustomers,
-      affinities: simAffinities,
-      forecast: simForecast,
-      stockPredictions: simPredictions,
-      campaigns: simCampaigns,
-      stats: {
-        totalSales: 89450,
-        aov: 245,
-        activePercent: 78,
-        clvAverage: 3250,
-        retentionRate: 84,
-        revenueGrowth: 18.2
-      }
-    };
-  }
+  // (generateSimulatedData removed — using real data only)
 
   // Segment allocations for PieChart distribution counting
   const segmentChartData = useMemo(() => {
@@ -955,17 +738,6 @@ export default function OmniBizIntelligencePage() {
       {/* Main Grid Wrapper */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 mt-6">
         
-        {/* Sync Warn Indicator for local backfills */}
-        {dataReconstructed && (
-          <div className="bg-blue-50 border-l-4 border-indigo-500 p-4 rounded-xl flex items-start gap-3.5 mb-8 shadow-sm">
-            <Info className="h-5 w-5 text-indigo-600 mt-0.5 shrink-0" />
-            <div>
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Demo Datasets Enabled</h4>
-              <p className="text-xs text-slate-600 mt-0.5">We mapped standard transactional records for <strong className="text-indigo-600 font-semibold">{industry} operators</strong> to demonstrate complete analytical behavior charts. This database backfill overlays perfectly, syncing to your real product names if added inside registry catalogs.</p>
-            </div>
-          </div>
-        )}
-
         {/* --- DYNAMIC CUSTOMER KPIs PANEL --- */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           

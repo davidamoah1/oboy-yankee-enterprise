@@ -202,6 +202,10 @@ export class APIClient {
     return this.instance.put<T>(url, data, config);
   }
 
+  public async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.instance.patch<T>(url, data, config);
+  }
+
   public async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.instance.delete<T>(url, config);
   }

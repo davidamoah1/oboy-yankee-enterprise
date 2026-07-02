@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Calculator, 
   ArrowUpRight, 
@@ -39,15 +39,70 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const TRANSACTIONS = [
-  { id: "TX-1002", category: "Revenue", description: "Batch POS Settlement", amount: 4850.00, type: "Income", date: "2026-05-11", status: "Reconciled" },
-  { id: "TX-1003", category: "Expense", description: "Supplier Payment", amount: 1200.00, type: "Outflow", date: "2026-05-11", status: "Pending" },
-  { id: "TX-1004", category: "Payroll", description: "Staff Salary Payment", amount: 15400.00, type: "Outflow", date: "2026-05-10", status: "Reconciled" },
-  { id: "TX-1005", category: "Taxes", description: "GRA Payment", amount: 2400.00, type: "Outflow", date: "2026-05-09", status: "Finalized" },
-  { id: "TX-1006", category: "Revenue", description: "Online Store Sales", amount: 3200.00, type: "Income", date: "2026-05-08", status: "Reconciled" },
-];
+import apiClient from "@/lib/api-client";
+
+type Transaction = {
+  id: string;
+  category: string;
+  description: string;
+  amount: number;
+  type: "Income" | "Outflow";
+  date: string;
+  status: "Reconciled" | "Pending" | "Finalized";
+};
 
 export default function AccountingPage() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    Promise.all([
+      apiClient.get('/api/sales').catch(() => ({ data: [] })),
+      apiClient.get('/api/expenses').catch(() => ({ data: [] })),
+    ]).then(([salesRes, expensesRes]) => {
+      const sales = (salesRes.data || []).filter((s: any) => s.status === 'completed');
+      const expenses = expensesRes.data || [];
+      
+      const txns: Transaction[] = [
+        ...sales.map((s: any) => ({
+          id: s.receiptNumber || s.id,
+          category: "Revenue",
+          description: `Sale ${s.receiptNumber || s.id}`,
+          amount: Number(s.totalAmount) || 0,
+          type: "Income" as const,
+          date: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
+          status: "Reconciled" as const,
+        })),
+        ...expenses.map((e: any) => ({
+          id: e.id,
+          category: e.category || "Expense",
+          description: e.description || "Expense",
+          amount: Number(e.amount) || 0,
+          type: "Outflow" as const,
+          date: e.date ? new Date(e.date).toISOString().split('T')[0] : '',
+          status: (e.status === 'paid' ? "Reconciled" : "Pending") as Transaction['status'],
+        })),
+      ].sort((a, b) => b.date.localeCompare(a.date));
+      
+      setTransactions(txns);
+      setLoading(false);
+    });
+  }, []);
+
+  const totalIncome = transactions.filter(t => t.type === 'Income').reduce((s, t) => s + t.amount, 0);
+  const totalExpense = transactions.filter(t => t.type === 'Outflow').reduce((s, t) => s + t.amount, 0);
+  const netProfit = totalIncome - totalExpense;
+  const estimatedTax = Math.max(0, netProfit * 0.15);
+
+  const filteredTxns = useMemo(() => {
+    if (!search) return transactions;
+    return transactions.filter(t => 
+      t.id.toLowerCase().includes(search.toLowerCase()) ||
+      t.description.toLowerCase().includes(search.toLowerCase()) ||
+      t.category.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [transactions, search]);
   return (
     <div className="p-6 sm:p-10 space-y-10 max-w-7xl mx-auto">
       
@@ -93,10 +148,10 @@ export default function AccountingPage() {
                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none uppercase text-[9px] px-3 font-black tracking-widest">Total Net Profit</Badge>
                </div>
                <div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-2 italic">Remaining Balance (May)</div>
-                  <div className="text-6xl font-black italic tracking-tighter uppercase text-slate-100 mb-4 leading-none">GH₵ 34,250.00</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-2 italic">Net Profit (Current Period)</div>
+                  <div className="text-6xl font-black italic tracking-tighter uppercase text-slate-100 mb-4 leading-none">GH₵ {netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-widest">
-                     <TrendingUp className="h-4 w-4" /> +15.2% vs previous period
+                     <TrendingUp className="h-4 w-4" /> {transactions.length} transactions recorded
                   </div>
                </div>
             </div>
@@ -110,7 +165,7 @@ export default function AccountingPage() {
             </div>
             <div>
                <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Expenses</div>
-               <div className="text-3xl font-black italic text-slate-200 tracking-tighter leading-none mb-4">GH₵ 12.8k</div>
+               <div className="text-3xl font-black italic text-slate-200 tracking-tighter leading-none mb-4">GH₵ {totalExpense.toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <div className="h-full bg-rose-500 w-[45%]" />
                </div>
@@ -125,8 +180,8 @@ export default function AccountingPage() {
             </div>
             <div>
                <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Estimated Tax</div>
-               <div className="text-3xl font-black italic text-slate-200 tracking-tighter leading-none mb-4">GH₵ 4.2k</div>
-               <div className="text-[9px] font-bold text-amber-500 uppercase tracking-widest">Pending Tax Check</div>
+               <div className="text-3xl font-black italic text-slate-200 tracking-tighter leading-none mb-4">GH₵ {estimatedTax.toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
+               <div className="text-[9px] font-bold text-amber-500 uppercase tracking-widest">15% of net profit</div>
             </div>
          </Card>
       </div>
@@ -144,6 +199,8 @@ export default function AccountingPage() {
                  <Input 
                    className="h-12 pl-11 bg-white/5 border-none rounded-2xl italic font-bold" 
                    placeholder="Search entries..." 
+                   value={search}
+                   onChange={(e) => setSearch(e.target.value)}
                  />
               </div>
               <Button 
@@ -156,6 +213,22 @@ export default function AccountingPage() {
            </div>
         </div>
         <CardContent className="p-0">
+           {loading ? (
+             <div className="flex flex-col items-center justify-center py-20 gap-4">
+               <div className="h-8 w-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Loading transactions...</p>
+             </div>
+           ) : filteredTxns.length === 0 ? (
+             <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
+               <div className="h-16 w-16 rounded-2xl bg-muted/40 flex items-center justify-center">
+                 <Calculator className="h-8 w-8 text-muted-foreground/40" />
+               </div>
+               <div className="space-y-2">
+                 <h3 className="text-lg font-black italic uppercase tracking-tight">No Transactions Found</h3>
+                 <p className="text-xs text-muted-foreground font-bold max-w-sm">{search ? 'Try a different search term.' : 'Transactions will appear here once you start making sales and recording expenses.'}</p>
+               </div>
+             </div>
+           ) : (
            <Table>
               <TableHeader className="bg-white/5">
                  <TableRow className="border-none hover:bg-transparent">
@@ -169,7 +242,7 @@ export default function AccountingPage() {
                  </TableRow>
               </TableHeader>
               <TableBody>
-                 {TRANSACTIONS.map((tx) => (
+                 {filteredTxns.map((tx) => (
                     <TableRow key={tx.id} className="group hover:bg-white/[0.03] transition-all border-b border-white/5">
                        <TableCell className="px-10 py-10 font-black italic text-base text-slate-300 tracking-tight">{tx.id}</TableCell>
                        <TableCell>
@@ -222,6 +295,7 @@ export default function AccountingPage() {
                  ))}
               </TableBody>
            </Table>
+           )}
         </CardContent>
       </Card>
 

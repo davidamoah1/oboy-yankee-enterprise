@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
   DollarSign, 
   Calendar, 
@@ -25,15 +25,55 @@ import {
   TableRow 
 } from "@/components/ui/table";
 
-const PAYROLL_DATA = [
-  { id: 1, name: "Ama Serwaa", base: 4500, bonus: 500, deductions: 200, net: 4800, status: "Paid" },
-  { id: 2, name: "Kofi Mensah", base: 2800, bonus: 150, deductions: 100, net: 2850, status: "Pending" },
-  { id: 3, name: "Yaa Boateng", base: 3200, bonus: 200, deductions: 120, net: 3280, status: "Pending" },
-  { id: 4, name: "Kwame Owusu", base: 2800, bonus: 0, deductions: 100, net: 2700, status: "Pending" },
-  { id: 5, name: "Abena Darko", base: 2500, bonus: 100, deductions: 80, net: 2520, status: "Paid" }
-];
+import apiClient from "@/lib/api-client";
+
+type PayrollEntry = {
+  id: string;
+  name: string;
+  base: number;
+  bonus: number;
+  deductions: number;
+  net: number;
+  status: "Paid" | "Pending";
+};
 
 export default function PayrollPage() {
+  const [payroll, setPayroll] = useState<PayrollEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient.get('/api/users')
+      .then((response) => {
+        const data = response.data || [];
+        const mapped: PayrollEntry[] = data.map((u: any) => {
+          const base = Number(u.salary || u.baseSalary || 0);
+          const bonus = Number(u.bonus || 0);
+          const deductions = Number(u.deductions || 0);
+          return {
+            id: u.id,
+            name: u.fullName || u.email || 'Unknown',
+            base,
+            bonus,
+            deductions,
+            net: base + bonus - deductions,
+            status: (u.payrollStatus || 'Pending') as "Paid" | "Pending",
+          };
+        });
+        setPayroll(mapped);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error loading payroll:', err);
+        toast.error('Failed to load payroll data');
+        setLoading(false);
+      });
+  }, []);
+
+  const totalNet = payroll.reduce((sum, p) => sum + p.net, 0);
+  const totalBase = payroll.reduce((sum, p) => sum + p.base, 0);
+  const totalDeductions = payroll.reduce((sum, p) => sum + p.deductions, 0);
+  const paidCount = payroll.filter(p => p.status === 'Paid').length;
+
   return (
     <div className="p-6 sm:p-10 space-y-10 max-w-7xl mx-auto">
       
@@ -82,9 +122,9 @@ export default function PayrollPage() {
                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none uppercase text-[9px] px-3">System Healthy</Badge>
                </div>
                <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic mb-2">Total Monthly Commitment</div>
-               <div className="text-4xl font-black italic tracking-tighter uppercase text-foreground mb-4">GH₵ 16,150.00</div>
+               <div className="text-4xl font-black italic tracking-tighter uppercase text-foreground mb-4">GH₵ {totalNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                <div className="flex items-center gap-2 text-xs font-bold text-emerald-500">
-                  <CheckCircle2 className="h-4 w-4" /> Everything up to date
+                  <CheckCircle2 className="h-4 w-4" /> {payroll.length > 0 ? `${paidCount} of ${payroll.length} paid` : 'No employees yet'}
                </div>
             </div>
          </Card>
@@ -95,10 +135,10 @@ export default function PayrollPage() {
                   <div className="h-14 w-14 bg-muted rounded-2xl flex items-center justify-center text-slate-500 border border-border">
                      <Users className="h-6 w-6" />
                   </div>
-                  <Badge className="bg-blue-500/10 text-blue-500 border-none uppercase text-[9px] px-3">12 Agents Active</Badge>
+                  <Badge className="bg-blue-500/10 text-blue-500 border-none uppercase text-[9px] px-3">{payroll.length} Staff</Badge>
                </div>
                <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic mb-2">Employee Payments</div>
-               <div className="text-4xl font-black italic tracking-tighter uppercase text-foreground mb-4">GH₵ 12,400.00</div>
+               <div className="text-4xl font-black italic tracking-tighter uppercase text-foreground mb-4">GH₵ {totalBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-tight">Net payout after statutory deductions.</p>
             </div>
          </Card>
@@ -112,8 +152,8 @@ export default function PayrollPage() {
                   <Badge className="bg-amber-500/10 text-amber-500 border-none uppercase text-[9px] px-3">Pending Action</Badge>
                </div>
                <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic mb-2">Cycle Deductions</div>
-               <div className="text-4xl font-black italic tracking-tighter uppercase text-foreground mb-4">GH₵ 3,750.00</div>
-               <div className="text-[10px] font-black text-amber-500/60 uppercase tracking-widest">Awaiting tax records reconciliation.</div>
+               <div className="text-4xl font-black italic tracking-tighter uppercase text-foreground mb-4">GH₵ {totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+               <div className="text-[10px] font-black text-amber-500/60 uppercase tracking-widest">{payroll.length > 0 ? 'Statutory deductions total.' : 'No data yet.'}</div>
             </div>
          </Card>
       </div>
@@ -125,7 +165,7 @@ export default function PayrollPage() {
               <h3 className="text-2xl font-black italic tracking-tighter uppercase text-slate-100 flex items-center gap-3">
                  Payment History <Lock className="h-5 w-5 text-primary" />
               </h3>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">Paid for: May 2026</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">Current Cycle: {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
            </div>
            <Button 
              variant="outline" 
@@ -142,6 +182,22 @@ export default function PayrollPage() {
            </Button>
         </div>
         <CardContent className="p-0">
+           {loading ? (
+             <div className="flex flex-col items-center justify-center py-20 gap-4">
+               <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Loading payroll...</p>
+             </div>
+           ) : payroll.length === 0 ? (
+             <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
+               <div className="h-16 w-16 rounded-2xl bg-muted/40 flex items-center justify-center">
+                 <Users className="h-8 w-8 text-muted-foreground/40" />
+               </div>
+               <div className="space-y-2">
+                 <h3 className="text-lg font-black italic uppercase tracking-tight">No Payroll Records</h3>
+                 <p className="text-xs text-muted-foreground font-bold max-w-sm">Add staff members with salary information to generate payroll records.</p>
+               </div>
+             </div>
+           ) : (
            <Table>
               <TableHeader className="bg-white/5">
                  <TableRow className="hover:bg-transparent border-none">
@@ -155,7 +211,7 @@ export default function PayrollPage() {
                  </TableRow>
               </TableHeader>
               <TableBody>
-                 {PAYROLL_DATA.map((item) => (
+                 {payroll.map((item) => (
                     <TableRow key={item.id} className="group hover:bg-white/5 transition-all border-b border-white/5">
                        <TableCell className="px-10 py-8 font-black italic text-lg text-slate-200 tracking-tight uppercase">{item.name}</TableCell>
                        <TableCell className="font-bold text-slate-400">GH₵ {item.base.toFixed(2)}</TableCell>
@@ -186,6 +242,7 @@ export default function PayrollPage() {
                  ))}
               </TableBody>
            </Table>
+           )}
         </CardContent>
       </Card>
 

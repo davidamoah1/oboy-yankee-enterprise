@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   TrendingUp, 
   Users, 
@@ -35,25 +35,29 @@ import {
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
-
-const OVERVIEW_DATA = [
-  { name: "Jan", revenue: 45000, tenants: 12 },
-  { name: "Feb", revenue: 52000, tenants: 15 },
-  { name: "Mar", revenue: 48000, tenants: 18 },
-  { name: "Apr", revenue: 61000, tenants: 22 },
-  { name: "May", revenue: 75000, tenants: 30 },
-  { name: "Jun", revenue: 89000, tenants: 42 },
-];
-
-const TENANT_COMPOSITION = [
-  { name: "Retail", value: 45, color: "#3B82F6" },
-  { name: "F&B", value: 30, color: "#10B981" },
-  { name: "Services", value: 15, color: "#F59E0B" },
-  { name: "Others", value: 10, color: "#6366F1" },
-];
+import apiClient from "@/lib/api-client";
 
 export default function AdminAnalyticsPage() {
   const [timeRange, setTimeRange] = useState("6M");
+  const [overviewData, setOverviewData] = useState<any[]>([]);
+  const [tenantComposition, setTenantComposition] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient.get('/api/admin/analytics')
+      .then(({ data }) => {
+        setOverviewData(data.overviewData || []);
+        setTenantComposition(data.tenantComposition || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.warn('Failed to load analytics:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  const totalRevenue = overviewData.reduce((sum, d) => sum + d.revenue, 0);
+  const totalTenants = overviewData.reduce((sum, d) => sum + d.tenants, 0);
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-24">
@@ -100,9 +104,9 @@ export default function AdminAnalyticsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
          {[
-           { label: "Annual Revenue", val: "₵ 1.2M", trend: "+24%", icon: DollarSign, color: "text-blue-500" },
-           { label: "Active Shops", val: "154", trend: "+8.2%", icon: Building2, color: "text-emerald-500" },
-           { label: "Total Users", val: "12,430", trend: "+12%", icon: Users, color: "text-amber-500" },
+           { label: "Total Revenue", val: `₵${totalRevenue > 0 ? (totalRevenue / 1000).toFixed(1) + 'k' : '0'}`, trend: overviewData.length > 0 ? "Calculated" : "No data", icon: DollarSign, color: "text-blue-500" },
+           { label: "Active Shops", val: String(totalTenants), trend: overviewData.length > 0 ? "Live" : "No data", icon: Building2, color: "text-emerald-500" },
+           { label: "Data Points", val: String(overviewData.length), trend: "Monthly", icon: Users, color: "text-amber-500" },
            { label: "System Uptime", val: "99.9%", trend: "Stable", icon: Activity, color: "text-indigo-500" },
          ].map((stat, i) => (
            <Card key={i} className="border-none shadow-2xl bg-slate-900/40 backdrop-blur-xl rounded-[30px] border border-white/5 group hover:border-primary/20 transition-all">
@@ -141,7 +145,7 @@ export default function AdminAnalyticsPage() {
             </CardHeader>
             <CardContent className="p-8 h-[400px]">
                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={OVERVIEW_DATA}>
+                  <AreaChart data={overviewData}>
                      <defs>
                         <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
@@ -198,7 +202,7 @@ export default function AdminAnalyticsPage() {
                   <ResponsiveContainer width="100%" height="100%">
                      <PieChart>
                         <Pie
-                           data={TENANT_COMPOSITION}
+                           data={tenantComposition.length > 0 ? tenantComposition : [{ name: 'No Data', value: 1, color: '#333' }]}
                            cx="50%"
                            cy="50%"
                            innerRadius={60}
@@ -206,9 +210,9 @@ export default function AdminAnalyticsPage() {
                            paddingAngle={8}
                            dataKey="value"
                         >
-                           {TENANT_COMPOSITION.map((entry, index) => (
+                           {tenantComposition.length > 0 ? tenantComposition.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                           ))}
+                           )) : <Cell fill="#333" stroke="none" />}
                         </Pie>
                         <Tooltip 
                            contentStyle={{ 
@@ -220,20 +224,22 @@ export default function AdminAnalyticsPage() {
                      </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                     <span className="text-3xl font-black text-slate-100 italic tracking-tighter">154</span>
+                     <span className="text-3xl font-black text-slate-100 italic tracking-tighter">{totalTenants}</span>
                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">TOTAL_SHOPS</span>
                   </div>
                </div>
                <div className="space-y-4 mt-8">
-                  {TENANT_COMPOSITION.map((item, i) => (
+                  {tenantComposition.length > 0 ? tenantComposition.map((item, i) => (
                     <div key={i} className="flex items-center justify-between">
                        <div className="flex items-center gap-3">
                           <div className={cn("h-2 w-2 rounded-full shadow-lg", item.color)} style={{ backgroundColor: item.color }} />
                           <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest italic">{item.name}</span>
                        </div>
-                       <span className="text-[11px] font-mono font-black text-slate-500">{item.value}%</span>
+                       <span className="text-[11px] font-mono font-black text-slate-500">{item.value}</span>
                     </div>
-                  ))}
+                  )) : (
+                    <p className="text-[10px] text-slate-600 italic text-center py-4">No composition data yet</p>
+                  )}
                </div>
             </CardContent>
          </Card>

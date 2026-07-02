@@ -39,65 +39,21 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { platformService } from "@/features/super-admin/services/platform-service";
+import apiClient from "@/lib/api-client";
 import { AIInsights } from "@/components/dashboard/ai-insights";
 
-const REVENUE_DATA = [
-  { name: "Jan", revenue: 4000, active: 2400, growth: 2.5 },
-  { name: "Feb", revenue: 3000, active: 1398, growth: -1.2 },
-  { name: "Mar", revenue: 5000, active: 9800, growth: 4.8 },
-  { name: "Apr", revenue: 2780, active: 3908, growth: 1.1 },
-  { name: "May", revenue: 6890, active: 4800, growth: 6.2 },
-  { name: "Jun", revenue: 5390, active: 8800, growth: 3.4 },
-];
-
-const TENANT_ACQUISITION = [
-  { month: "Jan", tenants: 45 },
-  { month: "Feb", tenants: 52 },
-  { month: "Mar", tenants: 38 },
-  { month: "Apr", tenants: 65 },
-  { month: "May", tenants: 89 },
-  { month: "Jun", tenants: 72 },
-];
-
-const PLATFORM_INSIGHTS = [
-  { id: '1', type: 'opportunity' as const, title: 'Regional Expansion', description: 'Significant growth detected in the Kumasi region. Consider launching dedicated support hubs.', impact: '+15% Subscription Growth' },
-  { id: '2', type: 'info' as const, title: 'Payment Optimization', description: 'Paystack success rates are at an all-time high (99.2%) after recent API migration.', impact: 'Reduced Churn' },
-  { id: '3', type: 'alert' as const, title: 'Storage Capacity', description: 'Legacy media bucket is approaching 80% capacity. Plan migration to optimized edge storage.', impact: 'Prevent Downtime' },
-];
-
-const RECENT_ACTIVITY = [
-  { id: 1, type: "tenant_signup", text: "New shop 'Sekondi Market' signed up", time: "2 mins ago", status: "success", icon: Building2 },
-  { id: 2, type: "billing_success", text: "Enterprise renewal for 'Ghana Port' processed", time: "15 mins ago", status: "success", icon: CreditCard },
-  { id: 3, type: "system_alert", text: "Delayed connection detected in Region-West", time: "1 hour ago", status: "warning", icon: Activity },
-];
-
 export default function SuperAdminDashboard() {
-  const [stats, setStats] = useState<any>(() => {
-    try {
-      const fTenants = platformService.getFallbackTenantsSync().filter(t => t.status !== 'suspended');
-      const dbTenantsCount = fTenants.length;
-      const dbUsersCount = fTenants.reduce((acc, curr) => acc + curr.userCount, 0) + 1; // plus super admin
-      const totalRevenue = platformService.getFallbackTenantsSync().reduce((acc, curr) => acc + curr.revenue, 0);
-
-      return {
-        totalTenants: dbTenantsCount || 12,
-        totalUsers: dbUsersCount || 34,
-        monthlyRevenue: totalRevenue || 8450,
-        platformUptime: '99.98%',
-        averageResponseTime: '86ms'
-      };
-    } catch (e) {
-      return {
-        totalTenants: 12,
-        totalUsers: 34,
-        monthlyRevenue: 8450,
-        platformUptime: '99.98%',
-        averageResponseTime: '86ms'
-      };
-    }
+  const [stats, setStats] = useState<any>({
+    totalTenants: 0,
+    totalUsers: 0,
+    monthlyRevenue: 0,
+    platformUptime: '—',
+    averageResponseTime: '—'
   });
-  const [loading, setLoading] = useState(false);
+  const [revenueChart, setRevenueChart] = useState<any[]>([]);
+  const [tenantChart, setTenantChart] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
@@ -106,10 +62,15 @@ export default function SuperAdminDashboard() {
 
   const loadStats = async () => {
     try {
-      const data = await platformService.getGlobalStats();
-      if (data) setStats(data);
+      const { data } = await apiClient.get('/api/admin/platform-stats');
+      if (data) {
+        setStats(data);
+        setRevenueChart(data.revenueChart || []);
+        setTenantChart(data.tenantChart || []);
+        setRecentActivity(data.recentActivity || []);
+      }
     } catch (error) {
-      console.warn("Unable to load latest background telemetry, utilizing active caches:", error);
+      console.warn("Unable to load platform stats:", error);
     } finally {
       setLoading(false);
     }
@@ -209,7 +170,7 @@ export default function SuperAdminDashboard() {
           </CardHeader>
           <CardContent className="h-[300px] px-6">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={REVENUE_DATA}>
+              <LineChart data={revenueChart}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                 <XAxis 
                   dataKey="name" 
@@ -256,7 +217,7 @@ export default function SuperAdminDashboard() {
           </CardHeader>
           <CardContent className="h-[300px] px-6">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={TENANT_ACQUISITION}>
+              <BarChart data={tenantChart}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                 <XAxis 
                   dataKey="month" 
@@ -280,8 +241,8 @@ export default function SuperAdminDashboard() {
                   }}
                 />
                 <Bar dataKey="tenants" radius={[8, 8, 0, 0]}>
-                  {TENANT_ACQUISITION.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === TENANT_ACQUISITION.length - 1 ? '#3b82f6' : '#1e293b'} />
+                  {tenantChart.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === tenantChart.length - 1 ? '#3b82f6' : '#1e293b'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -311,7 +272,7 @@ export default function SuperAdminDashboard() {
           </CardHeader>
           <CardContent className="p-0 pb-12 overflow-hidden h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={REVENUE_DATA} margin={{ top: 20, right: 30, left: 10, bottom: 0 }}>
+              <AreaChart data={revenueChart} margin={{ top: 20, right: 30, left: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#ef4444" stopOpacity={0.2}/>
@@ -355,7 +316,7 @@ export default function SuperAdminDashboard() {
              <CardTitle className="text-4xl font-black italic tracking-tighter uppercase text-white">Live <br/>Events.</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 p-10 space-y-4">
-            {RECENT_ACTIVITY.map((activity, i) => (
+            {recentActivity.length > 0 ? recentActivity.map((activity, i) => (
               <motion.div 
                 key={activity.id}
                 initial={{ opacity: 0, x: 20 }}
@@ -367,14 +328,21 @@ export default function SuperAdminDashboard() {
                   "h-12 w-12 rounded-2xl flex items-center justify-center transition-all group-hover:rotate-12",
                   activity.status === 'success' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
                 )}>
-                  <activity.icon className="h-5 w-5" />
+                  <Activity className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-black italic uppercase tracking-tight text-white mb-1 truncate">{activity.text}</p>
                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{activity.time}</span>
                 </div>
               </motion.div>
-            ))}
+            )) : (
+              <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+                <div className="h-12 w-12 rounded-2xl bg-white/[0.02] flex items-center justify-center">
+                  <Activity className="h-6 w-6 text-slate-600" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">No recent activity</p>
+              </div>
+            )}
             <Button 
                variant="ghost" 
                onClick={() => toast.info("Opening master event telemetry...")}
@@ -387,7 +355,7 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* AI Platform Insights */}
-      <AIInsights insights={PLATFORM_INSIGHTS} />
+      <AIInsights insights={[]} />
 
       {/* Section Divider */}
       <div className="flex items-center gap-10 opacity-20">

@@ -20,67 +20,9 @@ const withTimeout = <T>(promise: Promise<T>, ms: number = 2000): Promise<T> => {
   });
 };
 
-// Helper to get fallback tenants list
+// Helper to get fallback tenants list (deprecated — use API instead)
 const getFallbackTenants = (): Tenant[] => {
-  const key = 'admin_fallback_tenants_v1';
-  const raw = localStorage.getItem(key);
-  if (raw) {
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      // Ignore error
-    }
-  }
-
-  const defaultTenants: Tenant[] = [
-    {
-      id: 'tenant-1',
-      name: 'Accra Retail Hub',
-      slug: 'accra-retail',
-      status: 'active',
-      plan: 'Business',
-      owners: 'Kofi Mensah',
-      createdAt: '2026-01-10',
-      userCount: 4,
-      revenue: 1450
-    },
-    {
-      id: 'tenant-2',
-      name: 'Kumasi Wholesale',
-      slug: 'kumasi-wholesale',
-      status: 'active',
-      plan: 'Enterprise',
-      owners: 'Ama Serwaa',
-      createdAt: '2026-02-15',
-      userCount: 8,
-      revenue: 3200
-    },
-    {
-      id: 'tenant-3',
-      name: 'Tamale Provision Store',
-      slug: 'tamale-provisions',
-      status: 'suspended',
-      plan: 'Starter',
-      owners: 'Ibrahim Fuseini',
-      createdAt: '2026-03-24',
-      userCount: 2,
-      revenue: 290
-    },
-    {
-      id: 'tenant-4',
-      name: 'Sekondi Market',
-      slug: 'sekondi-market',
-      status: 'active',
-      plan: 'Starter',
-      owners: 'Larissa Mensah',
-      createdAt: '2026-05-18',
-      userCount: 3,
-      revenue: 0
-    }
-  ];
-
-  localStorage.setItem(key, JSON.stringify(defaultTenants));
-  return defaultTenants;
+  return [];
 };
 
 export const platformService = {
@@ -117,18 +59,17 @@ export const platformService = {
     }
 
     if (!success) {
-      // Fallback telemetry calculation
-      const fTenants = getFallbackTenants().filter(t => t.status !== 'suspended');
-      dbTenantsCount = fTenants.length;
-      dbUsersCount = fTenants.reduce((acc, curr) => acc + curr.userCount, 0) + 1; // plus super admin
-      totalRevenue = getFallbackTenants().reduce((acc, curr) => acc + curr.revenue, 0);
+      // No fallback data — return zeros
+      dbTenantsCount = 0;
+      dbUsersCount = 0;
+      totalRevenue = 0;
     }
 
     return {
-      totalTenants: dbTenantsCount || 12,
-      totalUsers: dbUsersCount || 34,
-      activeSubscriptions: dbTenantsCount || 12,
-      monthlyRevenue: totalRevenue || 8450,
+      totalTenants: dbTenantsCount,
+      totalUsers: dbUsersCount,
+      activeSubscriptions: dbTenantsCount,
+      monthlyRevenue: totalRevenue,
       platformUptime: '99.98%',
       averageResponseTime: '86ms'
     };
@@ -176,7 +117,7 @@ export const platformService = {
   },
 
   getFallbackTenantsSync(): Tenant[] {
-    return getFallbackTenants();
+    return [];
   },
 
   async updateTenantStatus(tenantId: string, status: string) {

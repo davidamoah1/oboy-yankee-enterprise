@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   Download, 
   Calendar, 
@@ -42,36 +42,99 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
-
-const PERFORMANCE_DATA = [
-  { name: "Mon", sales: 1200, expenses: 400, margin: 800 },
-  { name: "Tue", sales: 3400, expenses: 800, margin: 2600 },
-  { name: "Wed", sales: 2100, expenses: 500, margin: 1600 },
-  { name: "Thu", sales: 4500, expenses: 1200, margin: 3300 },
-  { name: "Fri", sales: 5200, expenses: 900, margin: 4300 },
-  { name: "Sat", sales: 3800, expenses: 1100, margin: 2700 },
-  { name: "Sun", sales: 1900, expenses: 600, margin: 1300 },
-];
-
-const CATEGORY_DATA = [
-  { name: "Beverages", value: 400 },
-  { name: "Snacks", value: 300 },
-  { name: "Grains", value: 300 },
-  { name: "Electronics", value: 200 },
-];
+import apiClient from "@/lib/api-client";
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"];
 
 export default function ReportsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useState("Weekly");
+  const [sales, setSales] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = () => {
+    setLoading(true);
+    Promise.all([
+      apiClient.get('/api/sales').catch(() => ({ data: [] })),
+      apiClient.get('/api/expenses').catch(() => ({ data: [] })),
+      apiClient.get('/api/products').catch(() => ({ data: [] })),
+    ]).then(([salesRes, expensesRes, productsRes]) => {
+      setSales((salesRes.data || []).filter((s: any) => s.status === 'completed'));
+      setExpenses(expensesRes.data || []);
+      setProducts(productsRes.data || []);
+      setLoading(false);
+    });
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const performanceData = useMemo(() => {
+    const today = new Date();
+    const days = timeRange === 'Daily' ? 1 : timeRange === 'Monthly' ? 30 : 7;
+    const labels = timeRange === 'Daily' ? ['Today'] : 
+      timeRange === 'Monthly' ? ['Wk1', 'Wk2', 'Wk3', 'Wk4'] :
+      ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    if (timeRange === 'Monthly') {
+      const weeks = Array.from({ length: 4 }, (_, i) => ({ name: labels[i], sales: 0, expenses: 0, margin: 0 }));
+      sales.forEach(s => {
+        const d = new Date(s.createdAt);
+        const weekDiff = Math.floor((today.getTime() - d.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        const weekIdx = 3 - weekDiff;
+        if (weekIdx >= 0 && weekIdx < 4) weeks[weekIdx].sales += Number(s.totalAmount) || 0;
+      });
+      expenses.forEach(e => {
+        const d = new Date(e.date);
+        const weekDiff = Math.floor((today.getTime() - d.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        const weekIdx = 3 - weekDiff;
+        if (weekIdx >= 0 && weekIdx < 4) weeks[weekIdx].expenses += Number(e.amount) || 0;
+      });
+      weeks.forEach(w => w.margin = w.sales - w.expenses);
+      return weeks;
+    }
+    
+    const data = Array.from({ length: days === 1 ? 1 : 7 }, (_, i) => ({ name: labels[i], sales: 0, expenses: 0, margin: 0 }));
+    sales.forEach(s => {
+      const d = new Date(s.createdAt);
+      const dayDiff = Math.floor((today.getTime() - d.getTime()) / (24 * 60 * 60 * 1000));
+      const idx = days === 1 ? 0 : 6 - dayDiff;
+      if (idx >= 0 && idx < 7) data[idx].sales += Number(s.totalAmount) || 0;
+    });
+    expenses.forEach(e => {
+      const d = new Date(e.date);
+      const dayDiff = Math.floor((today.getTime() - d.getTime()) / (24 * 60 * 60 * 1000));
+      const idx = days === 1 ? 0 : 6 - dayDiff;
+      if (idx >= 0 && idx < 7) data[idx].expenses += Number(e.amount) || 0;
+    });
+    data.forEach(d => d.margin = d.sales - d.expenses);
+    return data;
+  }, [sales, expenses, timeRange]);
+
+  const categoryData = useMemo(() => {
+    const catMap: Record<string, number> = {};
+    products.forEach(p => {
+      const cat = typeof p.category === 'string' ? p.category : (p.category?.name || 'Uncategorized');
+      const value = Number(p.price) * (Number(p.stockQuantity ?? p.stock_quantity) || 0);
+      catMap[cat] = (catMap[cat] || 0) + value;
+    });
+    return Object.entries(catMap).map(([name, value]) => ({ name, value: Math.round(value) })).slice(0, 6);
+  }, [products]);
+
+  const totalSales = sales.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
+  const totalExpenses = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const profitMargin = totalSales > 0 ? ((totalSales - totalExpenses) / totalSales * 100).toFixed(1) : '0';
+  const avgSale = sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0';
+  const stockValue = products.reduce((sum, p) => sum + (Number(p.price) * (Number(p.stockQuantity ?? p.stock_quantity) || 0)), 0);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    fetchData();
     setTimeout(() => {
       setIsRefreshing(false);
       toast.success("Dashboard updated");
-    }, 1200);
+    }, 1000);
   };
 
   const handleExport = () => {
@@ -120,10 +183,10 @@ export default function ReportsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
          {[
-           { label: "Profit Margin", val: "24.2%", trend: "+2.1%", positive: true, icon: Target, desc: "vs Previous period" },
-           { label: "Avg Sale Value", val: "₵142.50", trend: "-₵12.00", positive: false, icon: Zap, desc: "Per Customer" },
-           { label: "Stock Movement", val: "2.4x", trend: "Optimal", positive: true, icon: RefreshCcw, desc: "How fast stock sells" },
-           { label: "Sales Growth", val: "+18.4%", trend: "+4.2%", positive: true, icon: Globe, desc: "Month over Month" },
+           { label: "Profit Margin", val: `${profitMargin}%`, trend: totalSales > 0 ? "Calculated" : "No data", positive: true, icon: Target, desc: "vs Revenue" },
+           { label: "Avg Sale Value", val: `₵${avgSale}`, trend: `${sales.length} sales`, positive: true, icon: Zap, desc: "Per Transaction" },
+           { label: "Stock Value", val: `₵${stockValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, trend: `${products.length} items`, positive: true, icon: RefreshCcw, desc: "Current inventory" },
+           { label: "Total Revenue", val: `₵${totalSales.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, trend: `${expenses.length} expenses`, positive: totalSales > totalExpenses, icon: Globe, desc: "All time" },
          ].map((stat, i) => (
            <Card key={i} className="border-none shadow-2xl shadow-black/[0.03] bg-card/40 backdrop-blur-xl rounded-[32px] p-8 relative overflow-hidden group">
              <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform duration-500">
@@ -169,7 +232,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent className="h-[450px] p-6">
                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={PERFORMANCE_DATA}>
+                  <AreaChart data={performanceData}>
                      <defs>
                         <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
@@ -239,12 +302,12 @@ export default function ReportsPage() {
                <div className="h-[240px] relative">
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 leading-none mb-1">Total Value</span>
-                     <span className="text-2xl font-black italic tracking-tighter italic">₵1.2k</span>
+                     <span className="text-2xl font-black italic tracking-tighter italic">₵{stockValue > 0 ? (stockValue / 1000).toFixed(1) + 'k' : '0'}</span>
                   </div>
                   <ResponsiveContainer width="100%" height="100%">
                      <PieChart>
                         <Pie
-                           data={CATEGORY_DATA}
+                           data={categoryData.length > 0 ? categoryData : [{ name: 'No Data', value: 1 }]}
                            cx="50%"
                            cy="50%"
                            innerRadius={75}
@@ -253,24 +316,24 @@ export default function ReportsPage() {
                            dataKey="value"
                            stroke="none"
                         >
-                           {CATEGORY_DATA.map((entry, index) => (
+                           {categoryData.length > 0 ? categoryData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} radius={12} />
-                           ))}
+                           )) : <Cell fill="#333" />}
                         </Pie>
                         <Tooltip />
                      </PieChart>
                   </ResponsiveContainer>
                </div>
                <div className="grid grid-cols-2 gap-4">
-                  {CATEGORY_DATA.map((item, i) => (
+                  {categoryData.length > 0 ? categoryData.map((item, i) => (
                      <div key={i} className="flex flex-col gap-2 p-4 bg-muted/20 border border-white/5 rounded-2xl group hover:bg-muted/30 transition-all">
                         <div className="flex items-center gap-2">
                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{item.name}</span>
                         </div>
-                        <span className="text-sm font-black italic">₵{item.value}k</span>
+                        <span className="text-sm font-black italic">₵{(item.value / 1000).toFixed(1)}k</span>
                      </div>
-                  ))}
+                  )) : <p className="text-[10px] text-muted-foreground/40 italic col-span-2 text-center py-4">No stock data yet</p>}
                </div>
             </CardContent>
          </Card>
