@@ -487,6 +487,28 @@ export default function InventoryPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-32 gap-4">
+              <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Loading inventory...</p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-32 gap-6 text-center">
+              <div className="h-20 w-20 rounded-3xl bg-muted/40 flex items-center justify-center">
+                <Box className="h-10 w-10 text-muted-foreground/40" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black italic uppercase tracking-tight">{search ? 'No Products Match' : 'No Products Yet'}</h3>
+                <p className="text-xs text-muted-foreground font-bold max-w-sm">{search ? 'Try a different search term or clear the filter.' : 'Start adding products to your inventory to see them listed here.'}</p>
+              </div>
+              {!search && (
+                <Button onClick={() => setIsAddModalOpen(true)} className="h-12 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] gap-3">
+                  <Plus className="h-4 w-4" /> Add Your First Product
+                </Button>
+              )}
+            </div>
+          ) : (
+          <>
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto custom-scrollbar">
             <Table>
@@ -498,7 +520,7 @@ export default function InventoryPage() {
                   <TableHead className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground text-center">Stock</TableHead>
                   <TableHead className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground text-right">Price</TableHead>
                   <TableHead className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground">Status</TableHead>
-                  <TableHead className="w-[100px] h-20 px-10"></TableHead>
+                  <TableHead className="w-[120px] h-20 px-10 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -600,6 +622,14 @@ export default function InventoryPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setConfirmDelete({ isOpen: true, id: product.id })}
+                        className="h-10 w-10 rounded-xl hover:bg-red-500/10 hover:text-red-500 text-muted-foreground transition-all"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -735,23 +765,20 @@ export default function InventoryPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmDelete({ isOpen: true, id: product.id })}
+                    className="h-9 rounded-xl text-[9px] font-black uppercase tracking-widest px-3 border-red-500/20 text-red-500 hover:bg-red-500/10 hover:border-red-500/40 transition-all"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
 
-          {filteredProducts.length === 0 && (
-            <div className="py-48 flex flex-col items-center justify-center text-muted-foreground/30">
-               <div className="h-32 w-32 rounded-full border-4 border-dashed border-muted-foreground/20 flex items-center justify-center mb-10 relative">
-                  <Search className="h-12 w-12" />
-                  <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-0 border-4 border-dashed border-primary/20 rounded-full"
-                  />
-               </div>
-               <span className="text-[12px] font-black uppercase tracking-[0.6em] italic">No products found</span>
-            </div>
+          </>
           )}
         </CardContent>
       </Card>
