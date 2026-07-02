@@ -108,11 +108,11 @@ export function AdminLayout() {
                 <div className="flex items-center gap-2 sm:gap-4 pl-2 sm:pl-4 border-l border-white/10 shrink-0">
                   <div className="flex flex-col items-end hidden sm:flex">
                     <span className="text-[10px] font-black uppercase tracking-widest text-white/60 leading-none mb-1">Global Director</span>
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-red-500 leading-none italic uppercase truncate max-w-[120px]">{profile?.full_name || 'Administrator'}</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-red-500 leading-none italic uppercase truncate max-w-[120px]">{profile?.fullName || 'Administrator'}</span>
                   </div>
                   <Avatar className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl border-2 border-white/10 shadow-2xl shrink-0">
-                    <AvatarImage src={profile?.avatar_url || ""} />
-                    <AvatarFallback className="bg-red-600 text-white font-black italic">{profile?.full_name?.substring(0, 2).toUpperCase() || 'SA'}</AvatarFallback>
+                    <AvatarImage src={profile?.avatarUrl || ""} />
+                    <AvatarFallback className="bg-red-600 text-white font-black italic">{profile?.fullName?.substring(0, 2).toUpperCase() || 'SA'}</AvatarFallback>
                   </Avatar>
                   <Button 
                     variant="ghost" 

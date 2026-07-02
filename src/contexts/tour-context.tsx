@@ -176,7 +176,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
         run={run}
         onEvent={handleEvent}
         continuous
-        showProgress
         scrollToFirstStep
         options={{
           primaryColor: '#10b981',

@@ -138,3 +138,24 @@ export interface CashDrawer extends BaseEntity {
   branchId: string | null;
   userId: string | null;
 }
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  monthly_price: number;
+  yearly_price: number;
+  currency: string;
+  features: string[];
+  limits?: {
+    products?: number;
+    staff_accounts?: number;
+    branches?: number;
+  };
+  is_active: boolean;
+  is_popular: boolean;
+  trial_days: number;
+  created_at: string;
+  updated_at: string;
+}

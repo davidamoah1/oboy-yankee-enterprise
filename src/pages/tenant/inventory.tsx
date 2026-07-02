@@ -654,7 +654,7 @@ export default function InventoryPage() {
                     </span>
                     <span className="text-[8px] text-muted-foreground/30">•</span>
                     <span className="text-[8px] font-black uppercase tracking-widest text-[#EAB308]">
-                      {product.category}
+                      {typeof product.category === 'string' ? product.category : product.category?.name || 'Uncategorized'}
                     </span>
                   </div>
                 </div>

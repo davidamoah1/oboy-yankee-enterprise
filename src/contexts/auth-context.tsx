@@ -5,12 +5,15 @@ import apiClient from '@/lib/api-client';
 
 interface AuthContextType {
   user: UserProfile | null;
+  profile: UserProfile | null;
   company: Company | null;
+  tenant: Company | null;
   branches: Branch[];
   activeBranch: Branch | null;
   loading: boolean;
   authInitialized: boolean;
   isAuthenticated: boolean;
+  isSuperAdmin: boolean;
   permissions: string[];
   signIn: (email: string, password: string) => Promise<UserProfile>;
   signOut: () => Promise<void>;
@@ -195,12 +198,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     user,
+    profile: user,
     company,
+    tenant: company,
     branches,
     activeBranch,
     loading,
     authInitialized,
     isAuthenticated,
+    isSuperAdmin: user?.role === UserRole.SUPER_ADMIN,
     permissions,
     signIn,
     signOut,

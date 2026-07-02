@@ -57,6 +57,7 @@ export interface Company {
   currencySymbol: string;
   timezone: string;
   businessType: string | null;
+  category?: string;
   settings: Record<string, any>;
 }
 

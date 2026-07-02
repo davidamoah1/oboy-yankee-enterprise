@@ -101,7 +101,7 @@ export default function OnboardWizardPage() {
     try {
       // Use the server-side API to bypass RLS issues during initial setup
       const response = await api.post('/api/onboard/complete', {
-        tenant_id: profile?.tenant_id,
+        tenant_id: profile?.companyId,
         location,
         opHours,
         category,
@@ -127,7 +127,7 @@ export default function OnboardWizardPage() {
         
         // Short delay for the toast to be seen
         setTimeout(() => {
-          navigate(`/app/${profile?.tenant_id}`);
+          navigate(`/app/${profile?.companyId}`);
         }, 1500);
       } else {
         throw new Error(response.data?.message || "Sync rejected.");
@@ -230,7 +230,7 @@ export default function OnboardWizardPage() {
                     Welcome to the <span className="text-emerald-600">Future</span>
                   </h2>
                   <p className="text-xl text-slate-500 font-bold leading-relaxed max-w-xl">
-                    Congratulations, {profile.full_name}! Your enterprise node for <span className="text-slate-900">{profile.tenant_id ? "your business" : "the hub"}</span> is active. 
+                    Congratulations, {profile?.fullName}! Your enterprise node for <span className="text-slate-900">{profile?.companyId ? "your business" : "the hub"}</span> is active. 
                     Let's configure your workspace in under 2 minutes.
                   </p>
                 </div>

@@ -136,7 +136,7 @@ export default function OnboardPaymentPage() {
       // Trace identity signals through all available persistent stores
       const rawEmail = profile?.email || user?.email || storedEmail || '';
       const safeEmail = String(rawEmail).trim().toLowerCase();
-      const tenantId = profile?.tenant_id || storedTenantId;
+      const tenantId = profile?.companyId || storedTenantId;
 
       // 1. Audit Client-side Environment Variables (Log presence, never values)
       console.log("[PAYMENT AUDIT] Initiating transaction handshake. Checking environment configuration...");
@@ -291,7 +291,7 @@ export default function OnboardPaymentPage() {
   };
 
   const verifyPayment = async (reference: string) => {
-    const tenantId = profile?.tenant_id || storedTenantId;
+    const tenantId = profile?.companyId || storedTenantId;
     
     if (!tenantId) {
       console.error("[VERIFY ERROR] Tenant ID identity missing during verification phase.");

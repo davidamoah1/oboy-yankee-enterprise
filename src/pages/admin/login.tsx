@@ -5,14 +5,13 @@ import { ShieldAlert, Lock, Mail, ArrowRight, CornerDownLeft, AlertTriangle } fr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const { refreshProfile, user, isSuperAdmin, authInitialized } = useAuth();
+  const { signIn, user, isSuperAdmin, authInitialized } = useAuth();
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
@@ -30,54 +29,10 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      // 1. Ensure any stale session is cleared before a fresh admin login
-      // but only if we are seeing credential errors
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const profile = await signIn(email.trim().toLowerCase(), password);
 
-      if (authError) {
-        if (authError.message.includes("Invalid login credentials")) {
-          // If it fails, maybe there's a session conflict. Try one more time after a quiet signout
-          await supabase.auth.signOut();
-          const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(),
-            password,
-          });
-          if (retryError) throw retryError;
-          authData.user = retryData.user;
-        } else {
-          throw authError;
-        }
-      }
-
-      // refreshProfile with the direct user ID to avoid race conditions and deduplicate fetches
-      let authDataResult = null;
-      if (authData.user) {
-        authDataResult = await refreshProfile(authData.user.id);
-      }
-
-      const isUserSuperAdmin = authDataResult?.profile?.role === 'super_admin' || email.trim().toLowerCase() === 'larrydavidamoah91@gmail.com';
-
-      // Verify the user actually has the super_admin role before navigating or auto-heal it
-      if (!isUserSuperAdmin) {
+      if (profile.role !== 'super_admin') {
         throw new Error("Access denied. Your credentials are correct, but this account does not have Super Admin privileges.");
-      }
-
-      // If they are logging in as the main system owner email, guarantee they are marked as super_admin in the DB
-      if (email.trim().toLowerCase() === 'larrydavidamoah91@gmail.com' && authData.user && authDataResult?.profile && authDataResult.profile.role !== 'super_admin') {
-        try {
-          await supabase
-            .from('profiles')
-            .update({ role: 'super_admin' })
-            .eq('id', authData.user.id);
-          
-          // Re-fetch profile to ensure all caches and state variables are fully synchronized
-          await refreshProfile(authData.user.id);
-        } catch (healErr) {
-          console.warn("[ADMIN AUTO-HEAL] Failed to promote database profile role, continuing with dynamic route-guard override.", healErr);
-        }
       }
 
       toast.success("Identity Verified. Entering System Console.");
@@ -92,7 +47,6 @@ export default function AdminLoginPage() {
 
   const handleDeepReset = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
     window.location.reload();
