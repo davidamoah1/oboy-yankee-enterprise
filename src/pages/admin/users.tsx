@@ -106,15 +106,25 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleRoleChange = (id: string, newRole: UserRole) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
-    toast.success(`User role elevated to ${newRole.replace('_', ' ')}`);
+  const handleRoleChange = async (id: string, newRole: UserRole) => {
+    try {
+      await apiClient.put(`/api/users/${id}`, { role: newRole });
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
+      toast.success(`User role elevated to ${newRole.replace('_', ' ')}`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update user role');
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirmModal.userId) {
-      setUsers(prev => prev.filter(u => u.id !== confirmModal.userId));
-      toast.success("User deleted successfully");
+      try {
+        await apiClient.delete(`/api/users/${confirmModal.userId}`);
+        setUsers(prev => prev.filter(u => u.id !== confirmModal.userId));
+        toast.success("User deleted successfully");
+      } catch (err: any) {
+        toast.error(err.response?.data?.error || 'Failed to delete user');
+      }
       setConfirmModal({ isOpen: false, userId: null, action: "" });
     }
   };

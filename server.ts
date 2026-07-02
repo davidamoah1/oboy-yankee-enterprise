@@ -1002,6 +1002,41 @@ app.delete("/api/users/:id", requireAuth, requirePermission("manage_users"), asy
   }
 });
 
+// Update a user (status, role, etc.)
+app.put("/api/users/:id", requireAuth, requirePermission("manage_users"), async (req: any, res) => {
+  try {
+    const { status, role, fullName, phone, department, shift } = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!user || user.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "User not found in your business." });
+    }
+    if (user.role === "super_admin") {
+      return res.status(403).json({ error: "Cannot modify a Super Admin." });
+    }
+
+    const data: any = {};
+    if (status) data.status = status;
+    if (role) data.role = role;
+    if (fullName) data.fullName = fullName;
+    if (phone) data.phone = phone;
+    if (department) data.department = department;
+    if (shift) data.shift = shift;
+
+    const updated = await prisma.user.update({
+      where: { id: req.params.id },
+      data,
+      select: { id: true, email: true, fullName: true, phone: true, role: true, status: true, lastLoginAt: true, createdAt: true },
+    });
+
+    await logActivity(req.user.userId, req.user.companyId, "STAFF_UPDATE", `Updated staff member "${user.fullName}" (${user.email})`, { updatedUserId: req.params.id, changes: data });
+
+    res.json(updated);
+  } catch (error: any) {
+    logger.error("[USER UPDATE ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to update staff member." });
+  }
+});
+
 // Update company info
 app.put("/api/company", requireAuth, requirePermission("manage_settings"), async (req: any, res) => {
   try {
@@ -1630,6 +1665,43 @@ app.get("/api/sales/:id", requireAuth, async (req: any, res) => {
         res.status(500).json({ error: "Failed to fetch sale. The database may be waking up, please try again." });
       }
     }
+  }
+});
+
+// Void a sale
+app.post("/api/sales/:id/void", requireAuth, requirePermission("manage_sales"), async (req: any, res) => {
+  try {
+    const sale = await prisma.sale.findUnique({
+      where: { id: req.params.id },
+      include: { items: true },
+    });
+    if (!sale || sale.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: "Sale not found." });
+    }
+    if (sale.status === "voided") {
+      return res.status(400).json({ error: "Sale is already voided." });
+    }
+
+    await prisma.$transaction([
+      prisma.sale.update({
+        where: { id: req.params.id },
+        data: { status: "voided" },
+      }),
+      // Restore stock quantities
+      ...sale.items.map((it: any) =>
+        prisma.product.update({
+          where: { id: it.productId },
+          data: { stockQuantity: { increment: it.quantity } },
+        })
+      ),
+    ]);
+
+    await logActivity(req.user.userId, req.user.companyId, "SALE_VOID", `Voided sale ${sale.receiptNumber}`, { saleId: req.params.id });
+
+    res.json({ success: true, message: "Sale voided successfully." });
+  } catch (error: any) {
+    logger.error("[SALE VOID ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to void sale." });
   }
 });
 

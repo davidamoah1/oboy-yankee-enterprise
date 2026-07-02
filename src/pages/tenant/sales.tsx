@@ -57,6 +57,7 @@ import {
 
 type Sale = {
   id: string;
+  receiptNumber: string;
   customer: string;
   items: number;
   amount: number;
@@ -79,15 +80,24 @@ export default function SalesHistoryPage() {
     apiClient.get('/api/sales')
       .then((response) => {
         const data = response.data || [];
-        const mapped: Sale[] = data.map((s: any) => ({
-          id: s.receiptNumber || s.id,
-          customer: s.customerName || (s.user?.fullName) || 'Walk-in Customer',
-          items: s.items?.length || 0,
-          amount: Number(s.totalAmount) || 0,
-          method: (s.paymentMethod || 'Cash') as Sale['method'],
-          timestamp: new Date(s.createdAt).toLocaleString(),
-          status: s.isVoided ? 'Voided' : 'Completed' as Sale['status'],
-        }));
+        const mapped: Sale[] = data.map((s: any) => {
+          const rawMethod = (s.paymentMethod || 'cash').toLowerCase();
+          const method: Sale['method'] = rawMethod === 'momo' || rawMethod === 'mobile_money' || rawMethod === 'mobile money'
+            ? 'MoMo'
+            : rawMethod === 'card'
+              ? 'Card'
+              : 'Cash';
+          return {
+            id: s.id,
+            receiptNumber: s.receiptNumber || s.id,
+            customer: s.customerName || (s.user?.fullName) || 'Walk-in Customer',
+            items: s.items?.length || 0,
+            amount: Number(s.totalAmount) || 0,
+            method,
+            timestamp: new Date(s.createdAt).toLocaleString(),
+            status: (s.status === 'voided' ? 'Voided' : 'Completed') as Sale['status'],
+          };
+        });
         setSales(mapped);
         setLoading(false);
       })
@@ -310,7 +320,7 @@ export default function SalesHistoryPage() {
                               "h-1.5 w-1.5 rounded-full",
                               sale.status === 'Completed' ? "bg-primary animate-pulse" : "bg-red-500"
                             )} />
-                            {sale.id}
+                            {sale.receiptNumber}
                          </div>
                       </TableCell>
                       <TableCell className="px-6 py-6">
@@ -399,7 +409,7 @@ export default function SalesHistoryPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono font-black text-primary bg-primary/5 border border-primary/10 px-2.5 py-1 rounded-lg">
-                        #{sale.id}
+                        #{sale.receiptNumber}
                       </span>
                       <Badge className={cn(
                         "text-[8px] font-black uppercase tracking-widest h-5 px-2 border-none",
