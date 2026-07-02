@@ -1,5 +1,4 @@
-import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   Plus, 
   Search, 
@@ -61,10 +60,6 @@ type Expense = {
   status: "paid" | "pending";
 };
 
-const MINI_CHART_DATA = [
-  { val: 400 }, { val: 300 }, { val: 500 }, { val: 200 }, { val: 600 }, { val: 400 }, { val: 700 }
-];
-
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [search, setSearch] = useState("");
@@ -94,6 +89,21 @@ export default function ExpensesPage() {
   }, []);
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const chartData = useMemo(() => {
+    const today = new Date();
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (6 - i));
+      return { date: d, val: 0 };
+    });
+    expenses.forEach(e => {
+      const expDate = new Date(e.date);
+      const dayIdx = last7.findIndex(d => d.date.toDateString() === expDate.toDateString());
+      if (dayIdx >= 0) last7[dayIdx].val += e.amount;
+    });
+    return last7.map(d => ({ val: d.val }));
+  }, [expenses]);
 
   const handleDelete = async () => {
     if (confirmModal.id) {
@@ -186,7 +196,7 @@ export default function ExpensesPage() {
                 <div className="flex items-center gap-6">
                    <div className="h-16 w-16">
                       <ResponsiveContainer width="100%" height="100%">
-                         <AreaChart data={MINI_CHART_DATA}>
+                         <AreaChart data={chartData}>
                             <Area type="monotone" dataKey="val" stroke="#3B82F6" strokeWidth={2} fill="rgba(59, 130, 246, 0.1)" />
                          </AreaChart>
                       </ResponsiveContainer>
@@ -229,6 +239,22 @@ export default function ExpensesPage() {
           </div>
         </CardHeader>
         <CardContent className="p-6">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Loading expense ledger...</p>
+            </div>
+          ) : filteredExpenses.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
+              <div className="h-16 w-16 rounded-2xl bg-muted/40 flex items-center justify-center">
+                <Wallet className="h-8 w-8 text-muted-foreground/40" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black italic uppercase tracking-tight">No Expenses Found</h3>
+                <p className="text-xs text-muted-foreground font-bold max-w-sm">{search ? 'No results match your search.' : 'Expense records will appear here once you start logging business expenditures.'}</p>
+              </div>
+            </div>
+          ) : (
           <div className="rounded-[32px] overflow-hidden border border-white/5 shadow-2xl">
             <Table>
               <TableHeader className="bg-muted/30 border-none">
@@ -317,6 +343,7 @@ export default function ExpensesPage() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { 
   Search, 
@@ -66,9 +66,6 @@ type Sale = {
   status: "Completed" | "Voided";
 };
 
-const MINI_CHART_DATA = [
-  { val: 100 }, { val: 300 }, { val: 200 }, { val: 500 }, { val: 400 }, { val: 600 }, { val: 800 }
-];
 
 export default function SalesHistoryPage() {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -109,6 +106,23 @@ export default function SalesHistoryPage() {
   }, []);
 
   const totalRevenue = sales.filter(s => s.status === 'Completed').reduce((sum, s) => sum + s.amount, 0);
+  const avgBasket = sales.length > 0 ? totalRevenue / sales.filter(s => s.status === 'Completed').length : 0;
+
+  const chartData = useMemo(() => {
+    const today = new Date();
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (6 - i));
+      return { date: d, val: 0 };
+    });
+    sales.forEach(s => {
+      if (s.status !== 'Completed') return;
+      const saleDate = new Date(s.timestamp);
+      const dayIdx = last7.findIndex(d => d.date.toDateString() === saleDate.toDateString());
+      if (dayIdx >= 0) last7[dayIdx].val += s.amount;
+    });
+    return last7.map(d => ({ val: d.val }));
+  }, [sales]);
 
   const handleDelete = async () => {
     if (confirmModal.id) {
@@ -215,13 +229,13 @@ export default function SalesHistoryPage() {
                 </div>
                 <div className="h-12 w-full">
                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={MINI_CHART_DATA}>
+                      <AreaChart data={chartData}>
                          <Area type="monotone" dataKey="val" stroke="#3B82F6" strokeWidth={2} fill="rgba(59, 130, 246, 0.1)" />
                       </AreaChart>
                    </ResponsiveContainer>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
-                   <TrendingUp className="h-3 w-3" /> Peak Performance Detected
+                   <TrendingUp className="h-3 w-3" /> {sales.length > 0 ? 'Last 7 Days Revenue' : 'No Data Yet'}
                 </div>
             </div>
          </Card>
@@ -248,15 +262,15 @@ export default function SalesHistoryPage() {
             <div className="space-y-6">
                 <div>
                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Basket Amplitude</span>
-                   <h3 className="text-3xl font-black italic tracking-tighter leading-none mt-1">₵ {(totalRevenue / (sales.length || 1)).toFixed(2)}</h3>
+                   <h3 className="text-3xl font-black italic tracking-tighter leading-none mt-1">₵ {avgBasket.toFixed(2)}</h3>
                 </div>
                 <div className="space-y-3">
                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic">Target Alpha</span>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">₵850.00</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic">Transactions</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">{sales.length} total</span>
                    </div>
                    <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: '68%' }} />
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min((sales.length / 50) * 100, 100)}%` }} />
                    </div>
                 </div>
             </div>
@@ -289,6 +303,28 @@ export default function SalesHistoryPage() {
           </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Loading transaction ledger...</p>
+            </div>
+          ) : filteredSales.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
+              <div className="h-16 w-16 rounded-2xl bg-muted/40 flex items-center justify-center">
+                <ReceiptIcon className="h-8 w-8 text-muted-foreground/40" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black italic uppercase tracking-tight">No Transactions Found</h3>
+                <p className="text-xs text-muted-foreground font-bold max-w-sm">{search ? 'No results match your search.' : 'Sales will appear here once you start making transactions from the POS terminal.'}</p>
+              </div>
+              {!search && (
+                <Button asChild className="h-12 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] gap-3">
+                  <Link to="/pos">Initialize POS</Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+          <>
           {/* Desktop Table View */}
           <div className="hidden md:block rounded-[32px] overflow-hidden border border-border/50 shadow-md">
             <Table>
@@ -497,6 +533,8 @@ export default function SalesHistoryPage() {
               ))}
             </AnimatePresence>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
 
