@@ -3,61 +3,6 @@ import { apiClient } from '@/lib/api-client';
 import { openDB, IDBPDatabase } from 'idb';
 import { toast } from 'sonner';
 
-const DEMO_PRODUCTS = [
-  {
-    id: "demo-1",
-    name: "GH Gold Supreme Cocoa",
-    category: "Food & Beverage",
-    sku: "COCA-001",
-    barcode: "6001234567891",
-    price: 35.00,
-    cost_price: 20.00,
-    stock_quantity: 120,
-    low_stock_threshold: 15,
-    is_active: true,
-    description: "Premium organic Ghana cocoa powder."
-  },
-  {
-    id: "demo-2",
-    name: "Kente Weave Heritage Scarf",
-    category: "Apparel",
-    sku: "KENT-002",
-    barcode: "6001234567892",
-    price: 150.00,
-    cost_price: 80.00,
-    stock_quantity: 8,
-    low_stock_threshold: 10,
-    is_active: true,
-    description: "Authentic hand-woven Kente scarf."
-  },
-  {
-    id: "demo-3",
-    name: "Alata Samina Soap (Black Soap)",
-    category: "Cosmetics",
-    sku: "SOAP-003",
-    barcode: "6001234567893",
-    price: 15.00,
-    cost_price: 7.50,
-    stock_quantity: 45,
-    low_stock_threshold: 10,
-    is_active: true,
-    description: "Traditional natural African black soap."
-  },
-  {
-    id: "demo-4",
-    name: "Golden Savanna Shea Butter",
-    category: "Cosmetics",
-    sku: "SHEA-004",
-    barcode: "6001234567894",
-    price: 25.00,
-    cost_price: 12.00,
-    stock_quantity: 3,
-    low_stock_threshold: 10,
-    is_active: true,
-    description: "Cold-pressed raw yellow shea butter."
-  }
-];
-
 /**
  * Enterprise Offline POS System Implementation
  * Handles local caching and synchronization of sales for the Ghana SME ecosystem.
@@ -125,17 +70,6 @@ export function usePOSSystem() {
       } catch (dbErr) {
         console.warn('[POS] IndexedDB read failed during optimistic load:', dbErr);
       }
-    }
-
-    // If still empty (e.g. fresh session), seed with DEMO_PRODUCTS immediately
-    if (localProducts.length === 0) {
-      localProducts = DEMO_PRODUCTS.map(p => ({
-        ...p,
-        id: p.id || crypto.randomUUID()
-      }));
-      try {
-        localStorage.setItem('oboy_yankee_products', JSON.stringify(localProducts));
-      } catch (cacheErr) {}
     }
 
     // Instantly set local state so Catalog contains items (including newly added ones) without waiting for network query
