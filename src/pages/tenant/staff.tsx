@@ -100,25 +100,7 @@ export default function StaffPage() {
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
 
   function processLogs(dbLogs: any[]) {
-    const basePatterns: Record<string, { clockIn: number; clockOut: number }> = {
-      "06:00": { clockIn: 2, clockOut: 0 },
-      "07:00": { clockIn: 6, clockOut: 0 },
-      "08:00": { clockIn: 14, clockOut: 1 },
-      "09:00": { clockIn: 5, clockOut: 2 },
-      "10:00": { clockIn: 1, clockOut: 1 },
-      "11:00": { clockIn: 0, clockOut: 0 },
-      "12:00": { clockIn: 3, clockOut: 1 },
-      "13:00": { clockIn: 1, clockOut: 2 },
-      "14:00": { clockIn: 9, clockOut: 8 },
-      "15:00": { clockIn: 2, clockOut: 2 },
-      "16:00": { clockIn: 1, clockOut: 4 },
-      "17:00": { clockIn: 0, clockOut: 5 },
-      "18:00": { clockIn: 1, clockOut: 1 },
-      "19:00": { clockIn: 0, clockOut: 2 },
-      "20:00": { clockIn: 0, clockOut: 3 },
-      "21:00": { clockIn: 1, clockOut: 10 },
-      "22:00": { clockIn: 0, clockOut: 12 },
-    };
+    const basePatterns: Record<string, { clockIn: number; clockOut: number }> = {};
 
     dbLogs.forEach((log: any) => {
       try {
@@ -174,28 +156,12 @@ export default function StaffPage() {
 
   async function fetchStaff() {
     try {
-      // Retrieve locally saved fallback staff first
-      const localStaffKey = 'oboy_yankee_staff';
-      const localRaw = localStorage.getItem(localStaffKey);
-      const localStaffList = localRaw ? JSON.parse(localRaw) : [];
-
-      let mergedStaff = [...localStaffList];
-
-      try {
-        const response = await apiClient.get('/api/users');
-        const data = response.data?.data || response.data || [];
-        if (Array.isArray(data) && data.length > 0) {
-          const dbEmails = new Set(data.map((s: any) => String(s.email || '').toLowerCase()).filter(Boolean));
-          const nonDupLocal = localStaffList.filter((ls: any) => ls.email && !dbEmails.has(String(ls.email).toLowerCase()));
-          mergedStaff = [...data, ...nonDupLocal];
-        }
-      } catch (dbErr) {
-        console.warn("API connection issue, utilizing local fallback cache:", dbErr);
-      }
-
-      setStaff(mergedStaff);
+      const response = await apiClient.get('/api/users');
+      const data = response.data?.data || response.data || [];
+      setStaff(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Failed to fetch personnel:", err);
+      console.error("Failed to fetch staff:", err);
+      setStaff([]);
     } finally {
       setLoading(false);
     }
@@ -218,19 +184,6 @@ export default function StaffPage() {
     }
     setIsInviting(true);
 
-    const newWorkerId = 'worker_' + Math.random().toString(36).substr(2, 9);
-    const newWorker = {
-      id: newWorkerId,
-      full_name: inviteName,
-      email: inviteEmail,
-      role: inviteRole,
-      department: inviteDepartment,
-      shift: inviteShift,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      attendance_score: 100
-    };
-    
     try {
       let successOnServer = false;
       let serverMessage = "";
@@ -259,15 +212,6 @@ export default function StaffPage() {
         console.warn("Backend auth registration timed out or errored. Proceeding with seamless workspace fallback registration:", serverErr);
       }
 
-      // Consolidating to local persistent sandbox storage
-      const localStaffKey = 'oboy_yankee_staff';
-      const localRaw = localStorage.getItem(localStaffKey);
-      const localStaffList = localRaw ? JSON.parse(localRaw) : [];
-      
-      const filtered = localStaffList.filter((item: any) => String(item.email).toLowerCase() !== String(inviteEmail).toLowerCase());
-      filtered.unshift(newWorker);
-      localStorage.setItem(localStaffKey, JSON.stringify(filtered));
-
       if (successOnServer) {
         toast.success(serverMessage);
       } else {
@@ -290,23 +234,9 @@ export default function StaffPage() {
 
   const handleRemoveStaff = async (staffId: string) => {
     try {
-      // 1. Delete from local storage fallback
-      const localStaffKey = 'oboy_yankee_staff';
-      const localRaw = localStorage.getItem(localStaffKey);
-      if (localRaw) {
-        const localStaffList = JSON.parse(localRaw);
-        const filtered = localStaffList.filter((item: any) => item.id !== staffId);
-        localStorage.setItem(localStaffKey, JSON.stringify(filtered));
-      }
-
-      // 2. Try to delete from API
-      try {
-        await apiClient.delete(`/api/users/${staffId}`);
-      } catch (dbErr) {
-        console.warn("Could not reach API for user deletion:", dbErr);
-      }
-
+      await apiClient.delete(`/api/users/${staffId}`);
       await fetchStaff();
+      toast.success("Staff member removed.");
     } catch (err: any) {
       console.error("Failed to remove staff:", err);
       toast.error("Could not remove staff member. Please try again.");
@@ -326,7 +256,7 @@ export default function StaffPage() {
       const now = new Date();
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length.toString(), icon: Clock, color: "text-purple-500" },
-    { title: "Attendance Rate", value: "98.4%", icon: TrendingUp, color: "text-amber-500" }
+    { title: "Attendance Rate", value: attendanceData.length > 0 ? `${Math.round(attendanceData.reduce((sum, d) => sum + d["Clock In"] + d["Clock Out"], 0) / Math.max(attendanceData.length, 1))}%` : '—', icon: TrendingUp, color: "text-amber-500" }
   ];
 
   return (
@@ -820,7 +750,28 @@ export default function StaffPage() {
                  </TableRow>
               </TableHeader>
               <TableBody>
-                 {filteredStaff.map((staff) => (
+                 {loading ? (
+                    <TableRow>
+                       <TableCell colSpan={6} className="text-center py-20">
+                          <div className="flex flex-col items-center gap-4">
+                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Loading staff...</span>
+                          </div>
+                       </TableCell>
+                    </TableRow>
+                 ) : filteredStaff.length === 0 ? (
+                    <TableRow>
+                       <TableCell colSpan={6} className="text-center py-20">
+                          <div className="flex flex-col items-center gap-4">
+                             <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center">
+                                <Users className="h-7 w-7 text-muted-foreground" />
+                             </div>
+                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No staff members found</span>
+                          </div>
+                       </TableCell>
+                    </TableRow>
+                 ) : (
+                 filteredStaff.map((staff) => (
                     <TableRow key={staff.id} className="group hover:bg-muted/20 transition-all border-b border-border/50">
                        <TableCell className="px-8 py-6">
                           <div className="flex items-center gap-4">
@@ -899,7 +850,8 @@ export default function StaffPage() {
                           </DropdownMenu>
                        </TableCell>
                     </TableRow>
-                 ))}
+                 ))
+                 )}
               </TableBody>
            </Table>
         </CardContent>
