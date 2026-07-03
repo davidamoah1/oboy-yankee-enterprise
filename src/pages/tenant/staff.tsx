@@ -158,7 +158,14 @@ export default function StaffPage() {
     try {
       const response = await apiClient.get('/api/users');
       const data = response.data?.data || response.data || [];
-      setStaff(Array.isArray(data) ? data : []);
+      const mapped = (Array.isArray(data) ? data : []).map((s: any) => ({
+        ...s,
+        full_name: s.fullName || s.full_name || '',
+        avatar_url: s.avatarUrl || s.avatar_url || '',
+        created_at: s.createdAt || s.created_at || '',
+        is_active: s.status ? s.status === 'active' : s.is_active,
+      }));
+      setStaff(mapped);
     } catch (err) {
       console.error("Failed to fetch staff:", err);
       setStaff([]);
@@ -234,12 +241,15 @@ export default function StaffPage() {
 
   const handleRemoveStaff = async (staffId: string) => {
     try {
-      await apiClient.delete(`/api/users/${staffId}`);
+      await apiClient.delete(`/api/users/${staffId}`, {
+        headers: { 'X-Skip-Global-Toast': 'true' },
+      });
       await fetchStaff();
       toast.success("Staff member removed.");
     } catch (err: any) {
       console.error("Failed to remove staff:", err);
-      toast.error("Could not remove staff member. Please try again.");
+      const backendMsg = err?.details?.error || err?.message || "Could not remove staff member. Please try again.";
+      toast.error(backendMsg);
     }
   };
 
@@ -840,12 +850,14 @@ export default function StaffPage() {
                                 <DropdownMenuItem className="h-11 rounded-xl font-black uppercase tracking-widest text-[10px] gap-3 focus:bg-primary focus:text-white mb-1 transition-all">
                                    <Mail className="h-4 w-4" /> Send Message
                                 </DropdownMenuItem>
+                                {staff.role !== 'company_admin' && staff.role !== 'super_admin' && (
                                 <DropdownMenuItem 
                                    onSelect={() => handleRemoveStaff(staff.id)}
                                    className="h-11 rounded-xl font-black uppercase tracking-widest text-[10px] gap-3 focus:bg-destructive focus:text-destructive-foreground transition-all cursor-pointer text-destructive"
                                 >
                                    Remove Staff
                                 </DropdownMenuItem>
+                                )}
                              </DropdownMenuContent>
                           </DropdownMenu>
                        </TableCell>
