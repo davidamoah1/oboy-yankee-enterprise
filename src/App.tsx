@@ -71,6 +71,7 @@ const LoadingFallback = () => (
 
 import { ErrorBoundary } from "./components/error-boundary";
 import { PWAUpdatePrompt } from "./components/pwa-update-prompt";
+import { ScrollToTop } from "./components/scroll-to-top";
 
 export default function App() {
   const { authInitialized, isAuthenticated } = useAuth();
@@ -81,6 +82,7 @@ export default function App() {
       <ErrorBoundary>
         <Toaster position="top-right" richColors expand={false} theme="dark" />
         <BrowserRouter>
+        <ScrollToTop />
         <Suspense fallback={<LoadingFallback />}>
           {!authInitialized ? (
             <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-950">
