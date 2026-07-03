@@ -3058,7 +3058,7 @@ app.get("/api/admin/tenants", requireAuth, async (req: any, res) => {
       return res.status(403).json({ error: "Access denied: Super admin only." });
     }
 
-    const companies = await prisma.company.findMany({
+    const allCompanies = await prisma.company.findMany({
       include: {
         users: { where: { deletedAt: null }, select: { id: true } },
         sales: { where: { status: "completed" }, select: { totalAmount: true } },
@@ -3066,17 +3066,25 @@ app.get("/api/admin/tenants", requireAuth, async (req: any, res) => {
       orderBy: { createdAt: "desc" },
     });
 
-    const tenants = companies.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.id,
-      status: "active",
-      plan: "Starter",
-      owners: "System Managed",
-      createdAt: c.createdAt ? new Date(c.createdAt).toISOString().split("T")[0] : "",
-      userCount: c.users?.length || 0,
-      revenue: c.sales?.reduce((acc: number, s: any) => acc + Number(s.totalAmount || 0), 0) || 0,
-    }));
+    const tenants = allCompanies
+      .filter((c: any) => {
+        const settings = (c.settings as any) || {};
+        return settings.status !== "deleted";
+      })
+      .map((c: any) => {
+        const settings = (c.settings as any) || {};
+        return {
+          id: c.id,
+          name: c.name,
+          slug: c.id,
+          status: settings.status === "suspended" ? "suspended" : "active",
+          plan: settings.plan || "Starter",
+          owners: "System Managed",
+          createdAt: c.createdAt ? new Date(c.createdAt).toISOString().split("T")[0] : "",
+          userCount: c.users?.length || 0,
+          revenue: c.sales?.reduce((acc: number, s: any) => acc + Number(s.totalAmount || 0), 0) || 0,
+        };
+      });
 
     res.json(tenants);
   } catch (error: any) {
@@ -3097,9 +3105,14 @@ app.patch("/api/admin/tenants/:id/status", requireAuth, async (req: any, res) =>
     if (!status || !["active", "suspended", "pending"].includes(status)) {
       return res.status(400).json({ error: "Invalid status." });
     }
+    const company = await prisma.company.findUnique({ where: { id: req.params.id } });
+    if (!company) {
+      return res.status(404).json({ error: "Tenant not found." });
+    }
+    const currentSettings = (company.settings as any) || {};
     await prisma.company.update({
       where: { id: req.params.id },
-      data: { settings: { ...(await prisma.company.findUnique({ where: { id: req.params.id } }))?.settings as object, status } },
+      data: { settings: { ...currentSettings, status } },
     });
     res.json({ success: true });
   } catch (error: any) {
@@ -3116,12 +3129,20 @@ app.delete("/api/admin/tenants/:id", requireAuth, async (req: any, res) => {
     if (req.user.role !== "super_admin") {
       return res.status(403).json({ error: "Access denied: Super admin only." });
     }
-    // Soft delete by setting a flag in settings
     const company = await prisma.company.findUnique({ where: { id: req.params.id } });
     if (!company) {
       return res.status(404).json({ error: "Tenant not found." });
     }
-    await prisma.company.delete({ where: { id: req.params.id } });
+    // Soft delete: mark all users as deleted, set company settings to inactive
+    await prisma.user.updateMany({
+      where: { companyId: req.params.id, deletedAt: null },
+      data: { deletedAt: new Date(), status: "suspended" },
+    });
+    const currentSettings = (company.settings as any) || {};
+    await prisma.company.update({
+      where: { id: req.params.id },
+      data: { settings: { ...currentSettings, status: "deleted", deletedAt: new Date().toISOString() } },
+    });
     res.json({ success: true });
   } catch (error: any) {
     logger.error("[ADMIN TENANT DELETE ERROR]", { error: error.message });

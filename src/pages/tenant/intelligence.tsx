@@ -314,8 +314,8 @@ export default function OmniBizIntelligencePage() {
       return {
         id: cust.id,
         name: cust.name,
-        email: cust.email || `${cust.name.toLowerCase().replace(/\s/g, '')}@omnimock.com`,
-        phone: cust.phone || "+233 50 123 4567",
+        email: cust.email || '',
+        phone: cust.phone || '',
         tier: cust.tier || (totalScore >= 12 ? 'VIP' : totalScore >= 9 ? 'Gold' : totalScore >= 6 ? 'Silver' : 'Standard'),
         totalSpent,
         frequency,
