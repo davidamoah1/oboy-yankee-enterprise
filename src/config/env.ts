@@ -7,8 +7,7 @@ export const clientEnvSchema = z.object({
 });
 
 export const serverEnvSchema = z.object({
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required (Neon PostgreSQL connection string)"),
-  DIRECT_URL: z.string().optional(),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required (MySQL connection string)"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),
   GEMINI_API_KEY: z.string().optional(),
@@ -39,7 +38,6 @@ export function validateClientEnv(): ClientEnv {
 export function validateServerEnv(processEnv: Record<string, any>): ServerEnv {
   const serverObj = {
     DATABASE_URL: processEnv.DATABASE_URL || '',
-    DIRECT_URL: processEnv.DIRECT_URL || '',
     JWT_SECRET: processEnv.JWT_SECRET || '',
     JWT_REFRESH_SECRET: processEnv.JWT_REFRESH_SECRET || '',
     GEMINI_API_KEY: processEnv.GEMINI_API_KEY,

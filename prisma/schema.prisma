@@ -1,5 +1,5 @@
 // OBOY YANKEE ENTERPRISE — Multi-Branch Schema
-// Neon PostgreSQL | Prisma ORM
+// MySQL | Prisma ORM
 // One company, many branches (shops). branchId separates data per shop.
 
 generator client {
@@ -7,16 +7,15 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 // ─────────────────────────────────────────────
 // Company (single record — this installation)
 // ─────────────────────────────────────────────
 model Company {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid())
   name           String
   legalName      String?
   taxId          String?
@@ -69,7 +68,7 @@ model Company {
 // Branches (Shops)
 // ─────────────────────────────────────────────
 model Branch {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   code        String?  // short code e.g. SHOP-01
   phone       String?
@@ -81,7 +80,7 @@ model Branch {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
 
   users        User[]
@@ -107,7 +106,7 @@ model Branch {
 // Authentication & RBAC
 // ─────────────────────────────────────────────
 model User {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid())
   email         String   @unique
   passwordHash  String
   fullName      String?
@@ -115,7 +114,7 @@ model User {
   phone         String?
   status        String   @default("active") // active | suspended | invited
   role          String   @default("cashier") // super_admin | company_admin | manager | cashier | store_keeper | sales_officer | accountant | hr | receptionist | custom
-  customRoleId  String?  @db.Uuid
+  customRoleId  String?
   lastLoginAt   DateTime?
   resetToken    String?
   resetTokenExpiry DateTime?
@@ -123,9 +122,9 @@ model User {
   updatedAt     DateTime @updatedAt
   deletedAt     DateTime?
 
-  companyId     String   @db.Uuid
+  companyId     String
   company       Company  @relation(fields: [companyId], references: [id])
-  branchId      String?  @db.Uuid
+  branchId      String?
   branch        Branch?  @relation(fields: [branchId], references: [id])
 
   customRole    Role?         @relation(fields: [customRoleId], references: [id])
@@ -150,7 +149,7 @@ model User {
 }
 
 model Role {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   slug        String   @unique
   description String?
@@ -163,7 +162,7 @@ model Role {
 }
 
 model Permission {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   slug        String   @unique
   module      String   // pos | inventory | sales | reports | settings | users | etc.
@@ -175,8 +174,8 @@ model Permission {
 }
 
 model RolePermission {
-  roleId       String @db.Uuid
-  permissionId String @db.Uuid
+  roleId       String
+  permissionId String
   createdAt    DateTime @default(now())
 
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
@@ -186,9 +185,9 @@ model RolePermission {
 }
 
 model UserPermission {
-  id            String   @id @default(uuid()) @db.Uuid
-  userId        String   @db.Uuid
-  permissionId  String   @db.Uuid
+  id            String   @id @default(uuid())
+  userId        String
+  permissionId  String
   granted       Boolean  @default(true)
   createdAt     DateTime @default(now())
 
@@ -202,33 +201,33 @@ model UserPermission {
 // Product Catalog
 // ─────────────────────────────────────────────
 model Category {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   description String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   products    Product[]
 }
 
 model Brand {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   description String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   products    Product[]
 }
 
 model Product {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String   @id @default(uuid())
   name             String
   description      String?
   sku              String?
@@ -248,10 +247,10 @@ model Product {
   updatedAt        DateTime @updatedAt
   deletedAt        DateTime?
 
-  companyId        String   @db.Uuid
-  categoryId       String?  @db.Uuid
-  brandId          String?  @db.Uuid
-  branchId         String?  @db.Uuid
+  companyId        String
+  categoryId       String?
+  brandId          String?
+  branchId         String?
 
   company          Company  @relation(fields: [companyId], references: [id])
   category         Category? @relation(fields: [categoryId], references: [id])
@@ -271,8 +270,8 @@ model Product {
 }
 
 model ProductVariant {
-  id          String   @id @default(uuid()) @db.Uuid
-  productId   String   @db.Uuid
+  id          String   @id @default(uuid())
+  productId   String
   name        String   // e.g. "Size L", "Color Red"
   sku         String?
   price       Decimal  @db.Decimal(12, 2)
@@ -287,8 +286,8 @@ model ProductVariant {
 }
 
 model Inventory {
-  id            String   @id @default(uuid()) @db.Uuid
-  productId     String   @db.Uuid
+  id            String   @id @default(uuid())
+  productId     String
   quantity      Int
   location      String?  // shelf, warehouse, display
   batchNumber   String?
@@ -296,7 +295,7 @@ model Inventory {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  branchId      String?  @db.Uuid
+  branchId      String?
 
   product       Product  @relation(fields: [productId], references: [id])
   branch        Branch?  @relation(fields: [branchId], references: [id])
@@ -306,15 +305,15 @@ model Inventory {
 }
 
 model StockMovement {
-  id          String   @id @default(uuid()) @db.Uuid
-  productId   String   @db.Uuid
+  id          String   @id @default(uuid())
+  productId   String
   type        String   // purchase | sale | return | adjustment | transfer
   quantity    Int      // positive = in, negative = out
   reason      String?
   reference   String?  // sale_id, purchase_id, etc.
   createdAt   DateTime @default(now())
 
-  branchId    String?  @db.Uuid
+  branchId    String?
 
   product     Product  @relation(fields: [productId], references: [id])
   branch      Branch?  @relation(fields: [branchId], references: [id])
@@ -329,7 +328,7 @@ model StockMovement {
 // Purchasing
 // ─────────────────────────────────────────────
 model Supplier {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   email       String?
   phone       String?
@@ -340,14 +339,14 @@ model Supplier {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   purchases   Purchase[]
 }
 
 model Purchase {
-  id            String   @id @default(uuid()) @db.Uuid
-  supplierId    String   @db.Uuid
+  id            String   @id @default(uuid())
+  supplierId    String
   status        String   @default("pending") // pending | received | cancelled
   totalAmount   Decimal  @db.Decimal(12, 2)
   paidAmount    Decimal  @db.Decimal(12, 2) @default(0)
@@ -355,9 +354,9 @@ model Purchase {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  companyId     String   @db.Uuid
-  userId        String?  @db.Uuid
-  branchId      String?  @db.Uuid
+  companyId     String
+  userId        String?
+  branchId      String?
 
   company       Company  @relation(fields: [companyId], references: [id])
   supplier      Supplier @relation(fields: [supplierId], references: [id])
@@ -372,9 +371,9 @@ model Purchase {
 }
 
 model PurchaseItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  purchaseId  String   @db.Uuid
-  productId   String   @db.Uuid
+  id          String   @id @default(uuid())
+  purchaseId  String
+  productId   String
   quantity    Int
   unitCost    Decimal  @db.Decimal(12, 2)
   totalPrice  Decimal  @db.Decimal(12, 2)
@@ -389,7 +388,7 @@ model PurchaseItem {
 // Sales / POS
 // ─────────────────────────────────────────────
 model Customer {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   email       String?
   phone       String?
@@ -401,7 +400,7 @@ model Customer {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   sales       Sale[]
   returns     Return[]
@@ -411,10 +410,10 @@ model Customer {
 }
 
 model Sale {
-  id              String   @id @default(uuid()) @db.Uuid
+  id              String   @id @default(uuid())
   receiptNumber   String   @unique
-  customerId      String?  @db.Uuid
-  userId          String?  @db.Uuid
+  customerId      String?
+  userId          String?
   subtotal        Decimal  @db.Decimal(12, 2)
   discountAmount  Decimal  @db.Decimal(12, 2) @default(0)
   taxAmount       Decimal  @db.Decimal(12, 2) @default(0)
@@ -435,8 +434,8 @@ model Sale {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  companyId       String   @db.Uuid
-  branchId        String?  @db.Uuid
+  companyId       String
+  branchId        String?
 
   company         Company  @relation(fields: [companyId], references: [id])
   customer        Customer? @relation(fields: [customerId], references: [id])
@@ -458,9 +457,9 @@ model Sale {
 }
 
 model SaleItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  saleId      String   @db.Uuid
-  productId   String   @db.Uuid
+  id          String   @id @default(uuid())
+  saleId      String
+  productId   String
   quantity    Int
   unitPrice   Decimal  @db.Decimal(12, 2)
   discount    Decimal  @db.Decimal(12, 2) @default(0)
@@ -474,13 +473,13 @@ model SaleItem {
 }
 
 model Return {
-  id            String   @id @default(uuid()) @db.Uuid
-  saleId        String   @db.Uuid
-  customerId    String?  @db.Uuid
+  id            String   @id @default(uuid())
+  saleId        String
+  customerId    String?
   reason        String
   totalAmount   Decimal  @db.Decimal(12, 2)
   status        String   @default("completed") // pending | completed | rejected
-  userId        String?  @db.Uuid
+  userId        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -494,8 +493,8 @@ model Return {
 // Payments & Cash
 // ─────────────────────────────────────────────
 model Payment {
-  id            String   @id @default(uuid()) @db.Uuid
-  saleId        String   @db.Uuid
+  id            String   @id @default(uuid())
+  saleId        String
   amount        Decimal  @db.Decimal(12, 2)
   method        String   // cash | momo | card | bank_transfer
   reference     String?
@@ -507,19 +506,19 @@ model Payment {
 }
 
 model PaymentMethod {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String   // Cash, MTN MoMo, Vodafone Cash, Card, Bank Transfer
   type        String   // cash | mobile_money | card | bank
   provider    String?  // mtn, vodafone, airteltigo, etc.
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
 }
 
 model CashDrawer {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid())
   openingAmount Decimal  @db.Decimal(12, 2)
   closingAmount Decimal? @db.Decimal(12, 2)
   status        String   @default("open") // open | closed
@@ -527,9 +526,9 @@ model CashDrawer {
   closedAt      DateTime?
   notes         String?
 
-  companyId     String   @db.Uuid
-  userId        String?  @db.Uuid
-  branchId      String?  @db.Uuid
+  companyId     String
+  userId        String?
+  branchId      String?
 
   company       Company  @relation(fields: [companyId], references: [id])
   user          User?    @relation(fields: [userId], references: [id])
@@ -544,20 +543,20 @@ model CashDrawer {
 // Expenses
 // ─────────────────────────────────────────────
 model ExpenseCategory {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   description String?
   createdAt   DateTime @default(now())
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   expenses    Expense[]
 }
 
 model Expense {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   category    String
-  categoryId  String?  @db.Uuid
+  categoryId  String?
   description String
   amount      Decimal  @db.Decimal(12, 2)
   date        DateTime @default(now())
@@ -566,9 +565,9 @@ model Expense {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
-  userId      String?  @db.Uuid
-  branchId    String?  @db.Uuid
+  companyId   String
+  userId      String?
+  branchId    String?
 
   company     Company  @relation(fields: [companyId], references: [id])
   user        User?    @relation(fields: [userId], references: [id])
@@ -584,18 +583,18 @@ model Expense {
 // HR / Employees
 // ─────────────────────────────────────────────
 model Department {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   description String?
   createdAt   DateTime @default(now())
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   employees   Employee[]
 }
 
 model Employee {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   fullName    String
   email       String?
   phone       String?
@@ -606,10 +605,10 @@ model Employee {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
-  departmentId String? @db.Uuid
-  userId      String?  @db.Uuid @unique
-  branchId    String?  @db.Uuid
+  companyId   String
+  departmentId String?
+  userId      String?  @unique
+  branchId    String?
 
   company     Company  @relation(fields: [companyId], references: [id])
   department  Department? @relation(fields: [departmentId], references: [id])
@@ -622,9 +621,9 @@ model Employee {
 }
 
 model Attendance {
-  id          String   @id @default(uuid()) @db.Uuid
-  employeeId  String   @db.Uuid
-  userId      String?  @db.Uuid
+  id          String   @id @default(uuid())
+  employeeId  String
+  userId      String?
   action      String   // clock_in | clock_out
   timestamp   DateTime @default(now())
   notes       String?
@@ -640,16 +639,16 @@ model Attendance {
 // Notifications
 // ─────────────────────────────────────────────
 model Notification {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String?  @db.Uuid
+  id          String   @id @default(uuid())
+  userId      String?
   title       String
   message     String
   type        String   @default("info") // info | warning | success | error
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
 
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
-  companyId   String   @db.Uuid
   user        User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
@@ -660,8 +659,8 @@ model Notification {
 // Audit & Activity Logs
 // ─────────────────────────────────────────────
 model AuditLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String?  @db.Uuid
+  id          String   @id @default(uuid())
+  userId      String?
   action      String
   entity      String
   entityId    String?
@@ -670,7 +669,7 @@ model AuditLog {
   userAgent   String?
   createdAt   DateTime @default(now())
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   user        User?    @relation(fields: [userId], references: [id])
 
@@ -680,14 +679,14 @@ model AuditLog {
 }
 
 model ActivityLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String?  @db.Uuid
+  id          String   @id @default(uuid())
+  userId      String?
   action      String
   description String?
   metadata    Json?
   createdAt   DateTime @default(now())
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   user        User?    @relation(fields: [userId], references: [id])
 
@@ -699,7 +698,7 @@ model ActivityLog {
 // Settings
 // ─────────────────────────────────────────────
 model Setting {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   key         String
   value       String
   category    String   @default("general") // general | pos | receipt | tax | email
@@ -707,7 +706,7 @@ model Setting {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, key])
@@ -718,7 +717,7 @@ model Setting {
 // License
 // ─────────────────────────────────────────────
 model License {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid())
   licenseKey    String   @unique
   productName   String   @default("OBOY YANKEE ENTERPRISE")
   edition       String   @default("standard") // standard | professional | enterprise
@@ -735,7 +734,7 @@ model License {
 // Backup
 // ─────────────────────────────────────────────
 model Backup {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   filename    String
   size        Int
   type        String   @default("manual") // manual | scheduled
@@ -748,7 +747,7 @@ model Backup {
 // Sync Queue & Offline Transactions
 // ─────────────────────────────────────────────
 model SyncQueueItem {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   entity      String   // sale | customer | product | expense | attendance
   entityId    String
   operation   String   // create | update | delete
@@ -759,7 +758,7 @@ model SyncQueueItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId   String   @db.Uuid
+  companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
 
   @@index([status])
@@ -767,19 +766,19 @@ model SyncQueueItem {
 }
 
 model OfflineTransaction {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid())
   localId       String   @unique
   receiptNumber String?
   items         Json
   totalAmount   Decimal  @db.Decimal(12, 2)
   paymentMethod String
-  customerId    String?  @db.Uuid
-  userId        String?  @db.Uuid
+  customerId    String?
+  userId        String?
   status        String   @default("pending") // pending | synced | failed
   createdAt     DateTime @default(now())
   syncedAt      DateTime?
 
-  companyId     String   @db.Uuid
+  companyId     String
   company       Company  @relation(fields: [companyId], references: [id])
 
   @@index([status])
@@ -790,7 +789,7 @@ model OfflineTransaction {
 // Z-Report / X-Report (End-of-Day Reconciliation)
 // ─────────────────────────────────────────────
 model ZReport {
-  id              String   @id @default(uuid()) @db.Uuid
+  id              String   @id @default(uuid())
   reportNumber    String   @unique
   reportType      String   @default("z_report") // z_report | x_report
   openingTime     DateTime
@@ -814,9 +813,9 @@ model ZReport {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  companyId       String   @db.Uuid
-  userId          String?  @db.Uuid
-  branchId        String?  @db.Uuid
+  companyId       String
+  userId          String?
+  branchId        String?
 
   company         Company  @relation(fields: [companyId], references: [id])
   user            User?    @relation(fields: [userId], references: [id])
@@ -830,9 +829,9 @@ model ZReport {
 }
 
 model ZReportItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  zReportId   String   @db.Uuid
-  saleId      String   @db.Uuid
+  id          String   @id @default(uuid())
+  zReportId   String
+  saleId      String
 
   zReport     ZReport  @relation(fields: [zReportId], references: [id], onDelete: Cascade)
   sale        Sale     @relation(fields: [saleId], references: [id])
@@ -844,7 +843,7 @@ model ZReportItem {
 // Airtime & Data Bundle Sales
 // ─────────────────────────────────────────────
 model AirtimeSale {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid())
   network       String   // mtn | telecel | airteltigo
   productType   String   // airtime | data
   phoneNumber   String
@@ -854,9 +853,9 @@ model AirtimeSale {
   reference     String?
   createdAt     DateTime @default(now())
 
-  companyId     String   @db.Uuid
-  userId        String?  @db.Uuid
-  branchId      String?  @db.Uuid
+  companyId     String
+  userId        String?
+  branchId      String?
 
   company       Company  @relation(fields: [companyId], references: [id])
   user          User?    @relation(fields: [userId], references: [id])
@@ -872,7 +871,7 @@ model AirtimeSale {
 // Bill Payments (ECG, Water, DSTV, etc.)
 // ─────────────────────────────────────────────
 model BillPayment {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid())
   provider      String   // ecg | ghana_water | dstv | gotv | school_fees
   accountNumber String
   accountName   String?
@@ -883,9 +882,9 @@ model BillPayment {
   reference     String?
   createdAt     DateTime @default(now())
 
-  companyId     String   @db.Uuid
-  userId        String?  @db.Uuid
-  branchId      String?  @db.Uuid
+  companyId     String
+  userId        String?
+  branchId      String?
 
   company       Company  @relation(fields: [companyId], references: [id])
   user          User?    @relation(fields: [userId], references: [id])
@@ -901,7 +900,7 @@ model BillPayment {
 // Promotions & Discounts Engine
 // ─────────────────────────────────────────────
 model Promotion {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid())
   name          String
   description   String?
   type          String   // percentage | fixed | bogo | bulk
@@ -912,14 +911,14 @@ model Promotion {
   endDate       DateTime
   isActive      Boolean  @default(true)
   appliesTo     String   @default("all") // all | category | product
-  categoryId    String?  @db.Uuid
-  productId     String?  @db.Uuid
+  categoryId    String?
+  productId     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  companyId     String   @db.Uuid
+  companyId     String
   company       Company  @relation(fields: [companyId], references: [id])
-  branchId      String?  @db.Uuid
+  branchId      String?
   branch        Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([companyId])
@@ -932,15 +931,15 @@ model Promotion {
 // Loyalty Redemption
 // ─────────────────────────────────────────────
 model LoyaltyRedemption {
-  id            String   @id @default(uuid()) @db.Uuid
-  customerId    String   @db.Uuid
+  id            String   @id @default(uuid())
+  customerId    String
   pointsUsed    Int
   valueRedeemed Decimal  @db.Decimal(12, 2)
-  saleId        String?  @db.Uuid
+  saleId        String?
   status        String   @default("completed") // completed | reversed
   createdAt     DateTime @default(now())
 
-  companyId     String   @db.Uuid
+  companyId     String
   company       Company  @relation(fields: [companyId], references: [id])
 
   @@index([customerId])
@@ -951,16 +950,16 @@ model LoyaltyRedemption {
 // Credit Payments (Debt Settlement)
 // ─────────────────────────────────────────────
 model CreditPayment {
-  id            String   @id @default(uuid()) @db.Uuid
-  saleId        String   @db.Uuid
+  id            String   @id @default(uuid())
+  saleId        String
   sale          Sale     @relation(fields: [saleId], references: [id])
-  customerId    String?  @db.Uuid
+  customerId    String?
   amount        Decimal  @db.Decimal(12, 2)
   paymentMethod String   // cash | momo | card
   reference     String?
   createdAt     DateTime @default(now())
 
-  companyId     String   @db.Uuid
+  companyId     String
   company       Company  @relation(fields: [companyId], references: [id])
 
   @@index([saleId])
@@ -969,7 +968,7 @@ model CreditPayment {
 }
 
 model Invoice {
-  id                  String   @id @default(uuid()) @db.Uuid
+  id                  String   @id @default(uuid())
   invoiceNumber       String   @unique
   clientName          String
   billingEmail        String?
@@ -986,9 +985,9 @@ model Invoice {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  companyId           String   @db.Uuid
+  companyId           String
   company             Company  @relation(fields: [companyId], references: [id])
-  branchId            String?  @db.Uuid
+  branchId            String?
   branch              Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([companyId])

@@ -131,9 +131,13 @@ export default defineConfig(({mode}) => {
             'react-vendor': ['react', 'react-dom', 'react-router-dom'],
             'chart-vendor': ['recharts'],
             'ui-vendor': ['lucide-react', 'motion/react', 'sonner'],
+            'query-vendor': ['@tanstack/react-query', 'zustand'],
+            'date-vendor': ['date-fns'],
+            'util-vendor': ['clsx', 'tailwind-merge'],
           },
         },
       },
+      chunkSizeWarningLimit: 1000,
     },
   };
 });

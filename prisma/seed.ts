@@ -113,7 +113,7 @@ async function main() {
     }
   }
 
-  // 5. Create hidden Super Admin user
+  // 5. Create Super Admin user (the app owner / shop owner)
   const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@oboyyankee.gh';
   const superAdminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD || 'NexaAdmin@2026!', 12);
   await prisma.user.upsert({
@@ -122,25 +122,8 @@ async function main() {
     create: {
       email: superAdminEmail,
       passwordHash: superAdminPassword,
-      fullName: 'System Administrator',
-      role: 'super_admin',
-      status: 'active',
-      companyId: company.id,
-      branchId: mainBranch.id,
-    },
-  });
-
-  // 6. Create demo Company Admin user
-  const companyAdminEmail = process.env.COMPANY_ADMIN_EMAIL || 'owner@oboyyankee.gh';
-  const companyAdminPassword = await bcrypt.hash(process.env.COMPANY_ADMIN_PASSWORD || 'Admin@2026!', 12);
-  await prisma.user.upsert({
-    where: { email: companyAdminEmail },
-    update: {},
-    create: {
-      email: companyAdminEmail,
-      passwordHash: companyAdminPassword,
       fullName: 'Business Owner',
-      role: 'company_admin',
+      role: 'super_admin',
       status: 'active',
       companyId: company.id,
       branchId: mainBranch.id,
@@ -215,8 +198,7 @@ async function main() {
 
   console.log('✅ Seed completed successfully!');
   console.log(`   Branch: ${mainBranch.name} (${mainBranch.code})`);
-  console.log(`   Super Admin: ${process.env.SUPER_ADMIN_EMAIL || 'admin@oboyyankee.gh'} / ***`);
-  console.log(`   Company Admin: ${process.env.COMPANY_ADMIN_EMAIL || 'owner@oboyyankee.gh'} / ***`);
+  console.log(`   Super Admin (App Owner): ${process.env.SUPER_ADMIN_EMAIL || 'admin@oboyyankee.gh'} / ***`);
 }
 
 main()

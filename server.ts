@@ -6,6 +6,7 @@ dotenv.config();
 import path from "path";
 import helmet from "helmet";
 import cors from "cors";
+import compression from "compression";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -39,7 +40,7 @@ logger.info("Initializing OBOY YANKEE ENTERPRISE production server...", {
   environment: process.env.NODE_ENV || "development"
 });
 
-// Warm up Neon database connection on startup (prevents cold start on first user request)
+// Warm up database connection on startup
 prisma.$queryRaw`SELECT 1`.then(() => {
   logger.info("[DB WARMUP] Database connection established successfully.");
 }).catch((err: any) => {
@@ -519,7 +520,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
     return res.status(400).json({ error: "Email and password are required." });
   }
 
-  // Retry login DB queries for Neon cold start
+  // Retry login DB queries for connection resilience
   const maxLoginRetries = 3;
   let lastError: any;
 
@@ -3686,7 +3687,15 @@ async function startServer() {
     });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: '1y', // 1 year for hashed assets
+      immutable: true,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
+    }));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
@@ -3702,4 +3711,5 @@ async function startServer() {
 if (!process.env.VERCEL) {
   startServer();
 }
+export default app;
 export default app;

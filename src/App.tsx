@@ -16,39 +16,40 @@ import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
 import { useOfflineSync } from "./hooks/use-offline-sync";
 
-import DashboardPage from "./pages/tenant/dashboard";
-import POSPage from "./pages/tenant/pos";
-import InventoryPage from "./pages/tenant/inventory";
-import ReceiptsPage from "./pages/tenant/receipts";
-import ReceiptDetailPage from "./pages/tenant/receipt-detail";
-import ExpensesPage from "./pages/tenant/expenses";
-import CustomersPage from "./pages/tenant/customers";
-import ReportsPage from "./pages/tenant/reports";
-import IntelligencePage from "./pages/tenant/intelligence";
-import SettingsPage from "./pages/tenant/settings";
-import ChangePasswordPage from "./pages/tenant/change-password";
-import SupportPage from "./pages/tenant/support";
-import SalesHistoryPage from "./pages/tenant/sales";
-import StaffPage from "./pages/tenant/staff";
-import PayrollPage from "./pages/tenant/payroll";
-import SuppliersPage from "./pages/tenant/suppliers";
-import InvoicesPage from "./pages/tenant/invoices";
-import MobileMoneyPage from "./pages/tenant/mobile-money";
-import OnlineStorePage from "./pages/tenant/online-store";
-import AccountingPage from "./pages/tenant/accounting";
-import ZReportsPage from "./pages/tenant/z-reports";
-import AirtimePage from "./pages/tenant/airtime";
-import BillPaymentsPage from "./pages/tenant/bill-payments";
-import CreditSalesPage from "./pages/tenant/credit-sales";
-import ReturnsPage from "./pages/tenant/returns";
-import ProfitAnalysisPage from "./pages/tenant/profit-analysis";
-import PromotionsPage from "./pages/tenant/promotions";
-import ActivityLogsPage from "./pages/tenant/activity-logs";
-import BranchesPage from "./pages/tenant/branches";
+// Lazy-load all pages for code splitting — only loads what the user navigates to
+const DashboardPage = lazy(() => import("./pages/tenant/dashboard"));
+const POSPage = lazy(() => import("./pages/tenant/pos"));
+const InventoryPage = lazy(() => import("./pages/tenant/inventory"));
+const ReceiptsPage = lazy(() => import("./pages/tenant/receipts"));
+const ReceiptDetailPage = lazy(() => import("./pages/tenant/receipt-detail"));
+const ExpensesPage = lazy(() => import("./pages/tenant/expenses"));
+const CustomersPage = lazy(() => import("./pages/tenant/customers"));
+const ReportsPage = lazy(() => import("./pages/tenant/reports"));
+const IntelligencePage = lazy(() => import("./pages/tenant/intelligence"));
+const SettingsPage = lazy(() => import("./pages/tenant/settings"));
+const ChangePasswordPage = lazy(() => import("./pages/tenant/change-password"));
+const SupportPage = lazy(() => import("./pages/tenant/support"));
+const SalesHistoryPage = lazy(() => import("./pages/tenant/sales"));
+const StaffPage = lazy(() => import("./pages/tenant/staff"));
+const PayrollPage = lazy(() => import("./pages/tenant/payroll"));
+const SuppliersPage = lazy(() => import("./pages/tenant/suppliers"));
+const InvoicesPage = lazy(() => import("./pages/tenant/invoices"));
+const MobileMoneyPage = lazy(() => import("./pages/tenant/mobile-money"));
+const OnlineStorePage = lazy(() => import("./pages/tenant/online-store"));
+const AccountingPage = lazy(() => import("./pages/tenant/accounting"));
+const ZReportsPage = lazy(() => import("./pages/tenant/z-reports"));
+const AirtimePage = lazy(() => import("./pages/tenant/airtime"));
+const BillPaymentsPage = lazy(() => import("./pages/tenant/bill-payments"));
+const CreditSalesPage = lazy(() => import("./pages/tenant/credit-sales"));
+const ReturnsPage = lazy(() => import("./pages/tenant/returns"));
+const ProfitAnalysisPage = lazy(() => import("./pages/tenant/profit-analysis"));
+const PromotionsPage = lazy(() => import("./pages/tenant/promotions"));
+const ActivityLogsPage = lazy(() => import("./pages/tenant/activity-logs"));
+const BranchesPage = lazy(() => import("./pages/tenant/branches"));
 
-import LoginPage from "./pages/auth/login";
-import ResetPasswordPage from "./pages/auth/reset-password";
-import VerifyReceiptPage from "./pages/verify-receipt";
+const LoginPage = lazy(() => import("./pages/auth/login"));
+const ResetPasswordPage = lazy(() => import("./pages/auth/reset-password"));
+const VerifyReceiptPage = lazy(() => import("./pages/verify-receipt"));
 
 const LoadingFallback = () => (
   <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-950 gap-4">
@@ -149,4 +150,3 @@ export default function App() {
     </ThemeProvider>
   );
 }
-

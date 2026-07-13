@@ -75,7 +75,12 @@ export class APIClient {
           try {
             const refreshToken = tokenStorage.getRefreshToken();
             if (!refreshToken) {
-              throw new Error('No refresh token available');
+              tokenStorage.clearTokens();
+              localStorage.removeItem('activeBranchId');
+              if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+              }
+              return Promise.reject(this.normalizeError(error));
             }
 
             const response = await axios.post(
@@ -90,6 +95,7 @@ export class APIClient {
             return this.instance(originalRequest);
           } catch (refreshErr) {
             tokenStorage.clearTokens();
+            localStorage.removeItem('activeBranchId');
             if (window.location.pathname !== '/login') {
               toast.error('Session expired. Please sign in again.');
               window.location.href = '/login';

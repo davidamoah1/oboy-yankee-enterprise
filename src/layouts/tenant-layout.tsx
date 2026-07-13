@@ -4,7 +4,6 @@ import {
   Menu,
   ChevronRight,
   Bell,
-  Search,
   Settings,
   LayoutDashboard,
   ShoppingCart,
@@ -37,14 +36,12 @@ import { TenantSidebar } from "@/components/layout/tenant-sidebar";
 import { BranchSelector } from "@/components/branch-selector";
 import { useAuth } from "@/contexts/auth-context";
 import { TenantSecurityWrapper } from "@/components/auth/tenant-security-wrapper";
-import { NexaCommand } from "@/components/intelligence/nexa-command";
 
 export function TenantLayout() {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [scrolled, setScrolled] = useState(false);
-  const [commandOpen, setCommandOpen] = useState(false);
   const isPOSPage = location.pathname.includes('/pos');
 
   useEffect(() => {
@@ -79,8 +76,6 @@ export function TenantLayout() {
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans selection:bg-primary/10">
-        <NexaCommand />
-        
         <AnimatePresence mode="wait">
           {isSidebarOpen && (
             <>
@@ -132,25 +127,6 @@ export function TenantLayout() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-5 shrink-0">
-              <div className="hidden lg:flex items-center relative group w-80">
-                <Search className="absolute left-4 h-4 w-4 text-muted-foreground group-focus-within:text-indigo-500 transition-colors shrink-0" />
-                <button 
-                  data-tour="quick-search"
-                  onClick={() => {
-                    const event = new KeyboardEvent('keydown', {
-                      key: 'k',
-                      metaKey: true,
-                      ctrlKey: true
-                    });
-                    document.dispatchEvent(event);
-                  }}
-                  className="w-full pl-12 pr-4 h-12 rounded-2xl bg-muted/40 border border-border hover:bg-muted/80 transition-all text-left text-muted-foreground font-bold italic tracking-tight flex items-center justify-between"
-                >
-                  <span>Quick Search...</span>
-                  <kbd className="h-5 px-1.5 rounded-lg border border-border bg-background font-mono text-[10px] text-muted-foreground/50">⌘K</kbd>
-                </button>
-              </div>
-
               <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <BranchSelector />
                 <ThemeToggle />

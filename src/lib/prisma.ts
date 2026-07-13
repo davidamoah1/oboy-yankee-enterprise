@@ -13,7 +13,7 @@ const basePrisma =
     },
   });
 
-// Check if this is a connection error that should be retried (Neon cold start)
+// Check if this is a connection error that should be retried
 function isConnectionError(error: any): boolean {
   return (
     error?.code === 'P1001' || // Can't reach database server
@@ -33,7 +33,7 @@ function isConnectionError(error: any): boolean {
 }
 
 // Global retry wrapper - automatically retries any query that fails due to
-// Neon serverless database cold start / connection timeouts
+// database connection timeouts
 async function withRetry<T>(operation: () => Promise<T>, context: string): Promise<T> {
   const maxRetries = 5;
   let lastError: any;
