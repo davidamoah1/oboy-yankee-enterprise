@@ -303,7 +303,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'strict' as const,
+  sameSite: isProduction ? ('none' as const) : ('lax' as const),
   path: '/',
 };
 
