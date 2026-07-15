@@ -536,9 +536,26 @@ const resetLimiter = rateLimit({
 app.get("/api/health", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: "ok", timestamp: new Date() });
+    const userCount = await prisma.user.count();
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      db: "connected",
+      users: userCount,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      hasDbUrl: !!process.env.DATABASE_URL,
+      nodeEnv: process.env.NODE_ENV || 'development',
+    });
   } catch (err: any) {
-    res.status(200).json({ status: "degraded", timestamp: new Date() });
+    res.status(200).json({
+      status: "degraded",
+      timestamp: new Date().toISOString(),
+      db: "error",
+      dbError: err.message,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      hasDbUrl: !!process.env.DATABASE_URL,
+      nodeEnv: process.env.NODE_ENV || 'development',
+    });
   }
 });
 
@@ -599,6 +616,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
       });
 
       if (!user || user.deletedAt) {
+        logger.warn("[AUTH LOGIN] User not found", { email: email.toLowerCase(), attempt });
         recordFailedLogin(normalizedEmail);
         return res.status(401).json({ error: "Invalid email or password." });
       }
@@ -609,6 +627,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
 
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
       if (!isPasswordValid) {
+        logger.warn("[AUTH LOGIN] Password mismatch", { email: email.toLowerCase(), attempt });
         recordFailedLogin(normalizedEmail);
         return res.status(401).json({ error: "Invalid email or password." });
       }
