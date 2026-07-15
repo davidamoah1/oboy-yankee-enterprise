@@ -631,6 +631,8 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
       const permissions = collectUserPermissions(user);
 
       return res.json({
+        accessToken,
+        refreshToken,
         user: {
           id: user.id,
           email: user.email,
@@ -717,6 +719,8 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
     res.json({
+      accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -765,7 +769,7 @@ app.post("/api/auth/refresh", async (req, res) => {
     res.cookie(ACCESS_COOKIE_NAME, accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
     res.cookie(REFRESH_COOKIE_NAME, newRefreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
-    res.json({ success: true });
+    res.json({ success: true, accessToken, refreshToken: newRefreshToken });
   } catch (error: any) {
     logger.error("[AUTH REFRESH ERROR]", { error: error.message });
     res.status(500).json({ error: "Token refresh failed." });

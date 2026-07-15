@@ -9,25 +9,38 @@ export const supabase = new Proxy({} as any, {
 });
 
 export const tokenStorage = {
-  // Tokens are now stored in httpOnly cookies set by the server — not accessible from JS
   getAccessToken(): string | null {
-    return null;
+    try {
+      return localStorage.getItem('oboy_access_token');
+    } catch {
+      return null;
+    }
   },
 
   getRefreshToken(): string | null {
-    return null;
+    try {
+      return localStorage.getItem('oboy_refresh_token');
+    } catch {
+      return null;
+    }
   },
 
-  setTokens(_accessToken: string, _refreshToken: string): void {
-    // No-op: tokens are set as httpOnly cookies by the server
+  setTokens(accessToken: string, refreshToken: string): void {
+    try {
+      localStorage.setItem('oboy_access_token', accessToken);
+      localStorage.setItem('oboy_refresh_token', refreshToken);
+    } catch (e) {
+      console.warn('[TokenStorage] Failed to store tokens:', e);
+    }
   },
 
   clearTokens(): void {
-    // Clear user cache — actual cookie clearing happens via /api/auth/logout
     try {
+      localStorage.removeItem('oboy_access_token');
+      localStorage.removeItem('oboy_refresh_token');
       localStorage.removeItem(USER_CACHE_KEY);
     } catch (e) {
-      console.warn('[TokenStorage] Failed to clear user cache:', e);
+      console.warn('[TokenStorage] Failed to clear tokens:', e);
     }
   },
 
@@ -49,7 +62,6 @@ export const tokenStorage = {
   },
 
   hasTokens(): boolean {
-    // Can't read httpOnly cookies from JS — use user cache as indicator
-    return !!this.getCachedUser();
+    return !!this.getAccessToken() || !!this.getCachedUser();
   },
 };

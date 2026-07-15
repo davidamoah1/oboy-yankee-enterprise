@@ -74,12 +74,18 @@ export class APIClient {
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
           try {
-            // Attempt silent refresh via httpOnly cookie — no token in JS
+            // Attempt silent refresh — send refresh token in body for Vercel serverless compatibility
+            const refreshToken = tokenStorage.getRefreshToken();
             const response = await axios.post(
               `${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`,
-              {},
+              { refreshToken },
               { withCredentials: true }
             );
+
+            // Store new tokens from response
+            if (response.data?.accessToken && response.data?.refreshToken) {
+              tokenStorage.setTokens(response.data.accessToken, response.data.refreshToken);
+            }
 
             return this.instance(originalRequest);
           } catch (refreshErr) {

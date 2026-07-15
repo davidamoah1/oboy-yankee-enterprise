@@ -117,7 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string): Promise<UserProfile> => {
     const response = await apiClient.post('/api/auth/login', { email, password });
-    const { user: userData } = response.data;
+    const { user: userData, accessToken, refreshToken } = response.data;
+
+    // Store tokens in localStorage for Vercel serverless compatibility
+    if (accessToken && refreshToken) {
+      tokenStorage.setTokens(accessToken, refreshToken);
+    }
 
     // Tokens are set as httpOnly cookies by the server
     const profile: UserProfile = {
