@@ -73,9 +73,18 @@ export class APIClient {
 
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
+
+          // Don't attempt refresh if we have no refresh token — user is simply not logged in
+          const refreshToken = tokenStorage.getRefreshToken();
+          if (!refreshToken) {
+            tokenStorage.clearTokens();
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
+            return Promise.reject(this.normalizeError(error));
+          }
+
           try {
-            // Attempt silent refresh — send refresh token in body for Vercel serverless compatibility
-            const refreshToken = tokenStorage.getRefreshToken();
             const response = await axios.post(
               `${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`,
               { refreshToken },

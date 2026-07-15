@@ -99,15 +99,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Seed from cached user instantly to prevent flash
     const cachedUser = tokenStorage.getCachedUser();
+    const hasTokens = tokenStorage.hasTokens();
     if (cachedUser) {
       setUser(cachedUser);
       setLoading(false);
       setAuthInitialized(true);
-      // Refresh in background via httpOnly cookie
+      // Refresh profile in background if we have tokens
+      if (hasTokens) {
+        fetchProfile();
+      }
+    } else if (hasTokens) {
+      // No cached user but tokens exist — try fetching profile
       fetchProfile();
     } else {
-      // No cached user — try fetching profile (cookie may still be valid)
-      fetchProfile();
+      // No tokens, no cached user — not logged in, skip API call
+      setLoading(false);
+      setAuthInitialized(true);
     }
 
     return () => {
