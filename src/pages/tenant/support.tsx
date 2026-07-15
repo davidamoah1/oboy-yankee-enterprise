@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { api } from "@/lib/api";
 
 interface SupportTicket {
   id: string;
@@ -34,10 +35,12 @@ interface SupportTicket {
   createdAt: string;
   description: string;
   messages: Array<{
-    sender: 'user' | 'admin';
+    id: string;
+    senderId: string;
     senderName: string;
+    senderRole: 'user' | 'admin';
     content: string;
-    timestamp: string;
+    createdAt: string;
   }>;
 }
 
@@ -81,19 +84,19 @@ export default function SupportPage() {
   const [replyText, setReplyText] = useState("");
   const [isReplying, setIsReplying] = useState(false);
 
-  const storageKey = 'oboy_yankee_support_tickets';
-
   // Load tickets on mount
   useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        setTickets(JSON.parse(saved));
-      } catch (e) {
-        setTickets([]);
-      }
+    fetchTickets();
+  }, []);
+
+  async function fetchTickets() {
+    try {
+      const { data } = await api.get('/api/support/tickets');
+      setTickets(data || []);
+    } catch (err) {
+      console.error('Failed to fetch tickets:', err);
     }
-  }, [storageKey]);
+  }
 
   // Handle support ticket submit
   const handleSubmitTicket = async (e: React.FormEvent) => {
@@ -104,42 +107,27 @@ export default function SupportPage() {
     }
 
     setIsSubmitting(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
 
-    const newTicket: SupportTicket = {
-      id: `NEX-TKT-${Math.floor(1000 + Math.random() * 9000)}`,
-      subject: subject.trim(),
-      category,
-      priority,
-      status: "open",
-      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      description: description.trim(),
-      messages: [
-        {
-          sender: "user",
-          senderName: user?.fullName || "Store Team Member",
-          content: description.trim(),
-          timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16)
-        }
-      ]
-    };
+    try {
+      const { data: newTicket } = await api.post('/api/support/tickets', {
+        subject: subject.trim(),
+        category,
+        priority,
+        description: description.trim(),
+      });
 
-    const updatedTickets = [newTicket, ...tickets];
-    setTickets(updatedTickets);
-    localStorage.setItem(storageKey, JSON.stringify(updatedTickets));
-    
-    // Reset form
-    setSubject("");
-    setDescription("");
-    setIsSubmitting(false);
-    
-    toast.success("Support Ticket Queued Successfully!", {
-      description: `Ticket ${newTicket.id} has been registered and assigned to administrators.`,
-    });
-    
-    setActiveTab('tickets');
+      setTickets(prev => [newTicket, ...prev]);
+      setSubject("");
+      setDescription("");
+      toast.success("Support Ticket Created", {
+        description: `Ticket ${newTicket.id} has been registered.`,
+      });
+      setActiveTab('tickets');
+    } catch (err: any) {
+      toast.error("Failed to create ticket", { description: err.message });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Submit chat reply message in ticket
@@ -148,75 +136,21 @@ export default function SupportPage() {
     if (!replyText.trim() || !selectedTicket) return;
 
     setIsReplying(true);
-    await new Promise(resolve => setTimeout(resolve, 600));
 
-    const updatedMessages = [
-      ...selectedTicket.messages,
-      {
-        sender: "user" as const,
-        senderName: user?.fullName || "Store Representative",
+    try {
+      const { data: newMessage } = await api.post(`/api/support/tickets/${selectedTicket.id}/messages`, {
         content: replyText.trim(),
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16)
-      }
-    ];
+      });
 
-    // Simulate auto AI/admin response after 2 seconds
-    const targetId = selectedTicket.id;
-    setTimeout(() => {
-      const liveSaved = localStorage.getItem(storageKey);
-      if (liveSaved) {
-        try {
-          const liveTickets: SupportTicket[] = JSON.parse(liveSaved);
-          const found = liveTickets.find(t => t.id === targetId);
-          if (found && found.status !== 'resolved') {
-            const adminReply = {
-              sender: 'admin' as const,
-              senderName: "Support Team",
-              content: `Hello! I have recorded your latest message regarding: "${found.subject}". A representative will review this shortly. Thank you for your patience!`,
-              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16)
-            };
-            const autoUpdated = liveTickets.map(t => {
-              if (t.id === targetId) {
-                return {
-                  ...t,
-                  status: 'responded' as const,
-                  messages: [...t.messages, adminReply]
-                };
-              }
-              return t;
-            });
-            localStorage.setItem(storageKey, JSON.stringify(autoUpdated));
-            setTickets(autoUpdated);
-            if (selectedTicket?.id === targetId) {
-              setSelectedTicket(prev => prev ? {
-                ...prev,
-                status: 'responded',
-                messages: [...prev.messages, adminReply]
-              } : null);
-            }
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      }
-    }, 1800);
-
-    const updatedTickets = tickets.map(t => {
-      if (t.id === selectedTicket.id) {
-        return {
-          ...t,
-          status: 'open' as const,
-          messages: updatedMessages
-        };
-      }
-      return t;
-    });
-
-    setTickets(updatedTickets);
-    localStorage.setItem(storageKey, JSON.stringify(updatedTickets));
-    setSelectedTicket(prev => prev ? { ...prev, status: 'open', messages: updatedMessages } : null);
-    setReplyText("");
-    setIsReplying(false);
+      const updatedMessages = [...selectedTicket.messages, newMessage];
+      setSelectedTicket(prev => prev ? { ...prev, messages: updatedMessages } : null);
+      setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, messages: updatedMessages } : t));
+      setReplyText("");
+    } catch (err: any) {
+      toast.error("Failed to send message", { description: err.message });
+    } finally {
+      setIsReplying(false);
+    }
   };
 
   const handleWhatsAppClick = () => {
@@ -413,7 +347,7 @@ export default function SupportPage() {
                           <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-widest px-2 py-0.5", getPriorityBadgeColor(ticket.priority))}>
                             {ticket.priority} priority
                           </Badge>
-                          <span className="text-slate-500 font-bold text-[9px] font-mono leading-none italic">{ticket.createdAt}</span>
+                          <span className="text-slate-500 font-bold text-[9px] font-mono leading-none italic">{new Date(ticket.createdAt).toLocaleString()}</span>
                         </div>
                         <h3 className="text-sm font-black italic uppercase text-white truncate max-w-lg group-hover:text-emerald-400 transition-colors">{ticket.subject}</h3>
                         <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{ticket.category} • Messages ({ticket.messages.length})</p>
@@ -476,7 +410,7 @@ export default function SupportPage() {
                           key={idx}
                           className={cn(
                             "flex flex-col max-w-[85%] p-4 rounded-2xl text-xs font-bold leading-relaxed",
-                            msg.sender === "admin"
+                            msg.senderRole === "admin"
                               ? "bg-slate-800 text-slate-100 rounded-bl-none border border-white/5 mr-auto"
                               : "bg-emerald-500/10 text-emerald-400 rounded-br-none border border-emerald-500/10 ml-auto"
                           )}
@@ -484,9 +418,9 @@ export default function SupportPage() {
                           <div className="flex items-center justify-between gap-4 mb-2">
                             <span className={cn(
                               "text-[8px] font-black uppercase tracking-widest",
-                              msg.sender === "admin" ? "text-emerald-500" : "text-white/60"
+                              msg.senderRole === "admin" ? "text-emerald-500" : "text-white/60"
                             )}>{msg.senderName}</span>
-                            <span className="text-[8px] text-slate-500 leading-none">{msg.timestamp}</span>
+                            <span className="text-[8px] text-slate-500 leading-none">{new Date(msg.createdAt).toLocaleString()}</span>
                           </div>
                           <div>{msg.content}</div>
                         </div>

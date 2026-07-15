@@ -25,7 +25,6 @@ export function PublicLayout() {
     { name: "Services", href: "/services" },
     { name: "Portfolio", href: "/portfolio" },
     { name: "Features", href: "/features" },
-    { name: "Pricing", href: "/pricing" },
     { name: "Contact", href: "/contact" },
   ];
 
@@ -170,7 +169,6 @@ export function PublicLayout() {
               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-10">Business</h4>
               <ul className="space-y-6 text-sm font-black uppercase tracking-widest text-muted-foreground">
                 <li><Link to="/features" className="hover:text-primary transition-colors">Features</Link></li>
-                <li><Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link></li>
                 <li><a href="#" className="hover:text-primary transition-colors">Public API</a></li>
               </ul>
             </div>

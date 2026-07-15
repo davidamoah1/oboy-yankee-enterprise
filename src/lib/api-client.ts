@@ -26,6 +26,7 @@ export class APIClient {
     this.instance = axios.create({
       baseURL: import.meta.env.VITE_API_URL || '',
       timeout: 45000,
+      withCredentials: true, // Send httpOnly cookies with every request
       headers: {
         'Content-Type': 'application/json',
       },
@@ -73,25 +74,13 @@ export class APIClient {
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
           try {
-            const refreshToken = tokenStorage.getRefreshToken();
-            if (!refreshToken) {
-              tokenStorage.clearTokens();
-              localStorage.removeItem('activeBranchId');
-              if (window.location.pathname !== '/login') {
-                window.location.href = '/login';
-              }
-              return Promise.reject(this.normalizeError(error));
-            }
-
+            // Attempt silent refresh via httpOnly cookie — no token in JS
             const response = await axios.post(
               `${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`,
-              { refreshToken }
+              {},
+              { withCredentials: true }
             );
 
-            const { accessToken, refreshToken: newRefreshToken } = response.data;
-            tokenStorage.setTokens(accessToken, newRefreshToken);
-
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return this.instance(originalRequest);
           } catch (refreshErr) {
             tokenStorage.clearTokens();

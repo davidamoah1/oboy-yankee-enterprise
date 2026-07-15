@@ -51,7 +51,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="flex flex-col sm:flex-row gap-4 sm:gap-8 items-center justify-center p-2 rounded-[32px] w-full max-w-md sm:max-w-none mx-auto"
           >
-            <Link to="/pricing" className="w-full sm:w-auto">
+            <Link to="/login" className="w-full sm:w-auto">
               <Button size="lg" className="h-16 sm:h-24 w-full sm:w-auto px-8 sm:px-16 text-base sm:text-2xl font-black uppercase tracking-widest gap-4 sm:gap-6 shadow-[0_16px_32px_-16px_oklch(var(--primary)/0.3)] rounded-[16px] sm:rounded-[24px] group relative overflow-hidden bg-primary border-none">
                  <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
                  <span className="relative z-10 flex items-center justify-center gap-3 sm:gap-4 italic uppercase tracking-tighter">
@@ -181,7 +181,7 @@ export default function LandingPage() {
                     className="h-14 sm:h-24 px-8 sm:px-20 bg-white text-primary hover:bg-white/90 text-sm sm:text-2xl font-black uppercase tracking-widest rounded-[18px] sm:rounded-3xl shadow-2xl transition-all hover:scale-105 border-none w-full sm:w-auto flex items-center justify-center gap-3 sm:gap-6"
                     asChild
                  >
-                    <Link to="/pricing">
+                    <Link to="/login">
                        Get Started
                        <ArrowRight className="h-4 w-4 sm:h-8 sm:w-8 ml-2 sm:ml-6 text-primary" />
                     </Link>

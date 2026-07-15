@@ -62,6 +62,7 @@ model Company {
   loyaltyRedemptions LoyaltyRedemption[]
   creditPayments CreditPayment[]
   invoices       Invoice[]
+  supportTickets SupportTicket[]
 }
 
 // ─────────────────────────────────────────────
@@ -142,6 +143,7 @@ model User {
   zReports       ZReport[]
   airtimeSales   AirtimeSale[]
   billPayments   BillPayment[]
+  supportTickets SupportTicket[]
 
   @@index([companyId])
   @@index([email])
@@ -993,4 +995,43 @@ model Invoice {
   @@index([companyId])
   @@index([status])
   @@index([branchId])
+}
+
+// ─────────────────────────────────────────────
+// Support Tickets
+// ─────────────────────────────────────────────
+model SupportTicket {
+  id          String   @id @default(uuid())
+  subject     String
+  category    String
+  priority    String   @default("medium") // low | medium | high | critical
+  status      String   @default("open") // open | responded | resolved
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  messages    SupportMessage[]
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([status])
+}
+
+model SupportMessage {
+  id          String   @id @default(uuid())
+  ticketId    String
+  senderId    String
+  senderName  String
+  senderRole  String   @default("user") // user | admin
+  content     String
+  createdAt   DateTime @default(now())
+
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }

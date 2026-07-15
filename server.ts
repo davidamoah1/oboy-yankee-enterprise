@@ -10,6 +10,7 @@ import compression from "compression";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import cookieParser from "cookie-parser";
 import { GoogleGenAI, Type } from "@google/genai";
 import { emailService } from "./src/services/email-service.js";
 import crypto from "crypto";
@@ -172,31 +173,32 @@ function getBranchFilter(req: any): string | undefined {
 // Enable trust proxy for express-rate-limit to work correctly in Cloud Run/Proxies
 app.set('trust proxy', 1);
 
-// Security Middlewares — disabled in development for Vite HMR compatibility
+// Security Middlewares — keep CSP and frameguard on in all environments
 const isDev = process.env.NODE_ENV !== "production";
+const cspDirectives = {
+  "default-src": ["'self'"],
+  "script-src": ["'self'", "'unsafe-inline'", "https://js.paystack.co"],
+  "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+  "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
+  "img-src": ["'self'", "data:", "blob:", "https:", "https://images.unsplash.com"],
+  "connect-src": ["'self'", "https://*", "wss://*", "ws://localhost:*"],
+  "frame-src": ["'self'", "https://js.paystack.co", "https://*.paystack.co"],
+  "frame-ancestors": ["'self'"]
+};
+
 if (isDev) {
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: { useDefaults: true, directives: cspDirectives },
+    frameguard: { action: "deny" },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: false,
     crossOriginOpenerPolicy: false,
   }));
 } else {
   app.use(helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        "default-src": ["'self'"],
-        "script-src": ["'self'", "'unsafe-inline'", "https://js.paystack.co"],
-        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
-        "img-src": ["'self'", "data:", "blob:", "https:", "https://images.unsplash.com"],
-        "connect-src": ["'self'", "https://*", "wss://*"],
-        "frame-src": ["'self'", "https://js.paystack.co", "https://*.paystack.co"],
-        "frame-ancestors": ["'self'"]
-      }
-    },
+    contentSecurityPolicy: { useDefaults: true, directives: cspDirectives },
     frameguard: { action: "deny" },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" }
   }));
@@ -294,6 +296,19 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '50kb' })); // Primitive body size limit to prevent buffer flood
+app.use(cookieParser()); // Parse httpOnly cookies for JWT auth
+
+// Cookie configuration for secure JWT storage
+const isProduction = process.env.NODE_ENV === 'production';
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: 'strict' as const,
+  path: '/',
+};
+
+const ACCESS_COOKIE_NAME = 'oboy_access_token';
+const REFRESH_COOKIE_NAME = 'oboy_refresh_token';
 
 // Rate Limiting: Prevent brute force and API density exhaustion
 const reqLimiterMessage = (msg: string) => ({
@@ -349,6 +364,43 @@ if (!JWT_REFRESH_SECRET || JWT_REFRESH_SECRET.length < 32) {
 
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
+
+// Password complexity: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit
+function validatePasswordComplexity(password: string): string | null {
+  if (password.length < 8) return "Password must be at least 8 characters long.";
+  if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter.";
+  if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter.";
+  if (!/[0-9]/.test(password)) return "Password must contain at least one digit.";
+  return null;
+}
+
+// Account lockout: track failed attempts in-memory (per email)
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+const failedLoginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
+function checkAccountLockout(email: string): { locked: boolean; remainingMs?: number } {
+  const record = failedLoginAttempts.get(email);
+  if (!record) return { locked: false };
+  if (record.lockedUntil && Date.now() < record.lockedUntil) {
+    return { locked: true, remainingMs: record.lockedUntil - Date.now() };
+  }
+  return { locked: false };
+}
+
+function recordFailedLogin(email: string) {
+  const record = failedLoginAttempts.get(email) || { count: 0, lockedUntil: 0 };
+  record.count++;
+  if (record.count >= MAX_FAILED_ATTEMPTS) {
+    record.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+    logger.warn(`[AUTH LOCKOUT] Account ${email} locked after ${record.count} failed attempts.`);
+  }
+  failedLoginAttempts.set(email, record);
+}
+
+function clearFailedLogins(email: string) {
+  failedLoginAttempts.delete(email);
+}
 
 function generateAccessToken(userId: string, role: string, companyId: string, branchId?: string | null): string {
   return jwt.sign({ userId, role, companyId, branchId: branchId || undefined }, JWT_SECRET!, { expiresIn: ACCESS_TOKEN_EXPIRY });
@@ -408,12 +460,14 @@ function collectUserPermissions(user: any): string[] {
  */
 async function requireAuth(req: any, res: any, next: any) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // Prefer httpOnly cookie, fall back to Authorization header for backward compat
+    const token = req.cookies?.[ACCESS_COOKIE_NAME] || 
+      (req.headers.authorization?.startsWith("Bearer ") ? req.headers.authorization.split(" ")[1] : null);
+    
+    if (!token) {
       return res.status(401).json({ error: "Access denied: No authentication token provided." });
     }
 
-    const token = authHeader.split(" ")[1];
     const decoded = verifyAccessToken(token);
 
     if (!decoded) {
@@ -520,6 +574,15 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
     return res.status(400).json({ error: "Email and password are required." });
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Check account lockout
+  const lockoutStatus = checkAccountLockout(normalizedEmail);
+  if (lockoutStatus.locked) {
+    const mins = Math.ceil((lockoutStatus.remainingMs || 0) / 60000);
+    return res.status(429).json({ error: `Account temporarily locked due to too many failed attempts. Try again in ${mins} minute(s).` });
+  }
+
   // Retry login DB queries for connection resilience
   const maxLoginRetries = 3;
   let lastError: any;
@@ -536,6 +599,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
       });
 
       if (!user || user.deletedAt) {
+        recordFailedLogin(normalizedEmail);
         return res.status(401).json({ error: "Invalid email or password." });
       }
 
@@ -545,8 +609,11 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
 
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
       if (!isPasswordValid) {
+        recordFailedLogin(normalizedEmail);
         return res.status(401).json({ error: "Invalid email or password." });
       }
+
+      clearFailedLogins(normalizedEmail);
 
       await prisma.user.update({
         where: { id: user.id },
@@ -558,11 +625,12 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
       const accessToken = generateAccessToken(user.id, user.role, user.companyId, user.branchId);
       const refreshToken = generateRefreshToken(user.id);
 
+      res.cookie(ACCESS_COOKIE_NAME, accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
+      res.cookie(REFRESH_COOKIE_NAME, refreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+
       const permissions = collectUserPermissions(user);
 
       return res.json({
-        accessToken,
-        refreshToken,
         user: {
           id: user.id,
           email: user.email,
@@ -605,8 +673,9 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
       return res.status(400).json({ error: "Email, password, full name, and company name are required." });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ error: "Password must be at least 8 characters long." });
+    const passwordError = validatePasswordComplexity(password);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
@@ -644,9 +713,10 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
     const accessToken = generateAccessToken(user.id, user.role, user.companyId, user.branchId);
     const refreshToken = generateRefreshToken(user.id);
 
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+
     res.json({
-      accessToken,
-      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -669,7 +739,7 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
 // Refresh token
 app.post("/api/auth/refresh", async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({ error: "Refresh token is required." });
@@ -692,7 +762,10 @@ app.post("/api/auth/refresh", async (req, res) => {
     const accessToken = generateAccessToken(user.id, user.role, user.companyId, user.branchId);
     const newRefreshToken = generateRefreshToken(user.id);
 
-    res.json({ accessToken, refreshToken: newRefreshToken });
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
+    res.cookie(REFRESH_COOKIE_NAME, newRefreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+    res.json({ success: true });
   } catch (error: any) {
     logger.error("[AUTH REFRESH ERROR]", { error: error.message });
     res.status(500).json({ error: "Token refresh failed." });
@@ -736,9 +809,11 @@ app.get("/api/auth/me", requireAuth, async (req: any, res) => {
   }
 });
 
-// Logout (client-side token clearing; server logs the event)
+// Logout (clear httpOnly cookies; server logs the event)
 app.post("/api/auth/logout", requireAuth, async (req: any, res) => {
   try {
+    res.clearCookie(ACCESS_COOKIE_NAME, COOKIE_OPTIONS);
+    res.clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
     logger.info(`[AUTH LOGOUT] User ${req.user.userId} logged out.`);
     await logActivity(req.user.userId, req.user.companyId, "LOGOUT", `User logged out`);
     res.json({ success: true, message: "Logged out successfully." });
@@ -817,8 +892,9 @@ app.post("/api/auth/reset-password/confirm", resetLimiter, async (req, res) => {
   if (!token || !newPassword) {
     return res.status(400).json({ error: "Reset token and new password are required." });
   }
-  if (newPassword.length < 8) {
-    return res.status(400).json({ error: "Password must be at least 8 characters." });
+  const passwordError = validatePasswordComplexity(newPassword);
+  if (passwordError) {
+    return res.status(400).json({ error: passwordError });
   }
 
   try {
@@ -891,9 +967,8 @@ app.post("/api/admin/invite-staff", requireAuth, requirePermission("manage_users
 
     res.json({
       success: true,
-      message: `Staff member added successfully.`,
+      message: `Staff member added successfully. Credentials sent to ${email}.`,
       staffId: newUser.id,
-      tempPassword,
     });
   } catch (error: any) {
     logger.error('[STAFF INVITE ERROR]', { error: error.message });
@@ -952,9 +1027,8 @@ app.post("/api/users/invite", requireAuth, requirePermission("manage_users"), ad
 
     res.json({
       success: true,
-      message: `Staff member added successfully.`,
+      message: `Staff member added successfully. Credentials sent to ${email}.`,
       userId: newUser.id,
-      tempPassword,
       staffId: newUser.id,
     });
 
@@ -1200,8 +1274,9 @@ app.put("/api/auth/password", requireAuth, async (req: any, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: "Current and new passwords are required." });
     }
-    if (newPassword.length < 8) {
-      return res.status(400).json({ error: "New password must be at least 8 characters." });
+    const passwordError = validatePasswordComplexity(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
@@ -3634,6 +3709,130 @@ app.get("/api/activity-logs/all", requireAuth, async (req: any, res) => {
   }
 });
 
+// ─────────────────────────────────────────────
+// SUPPORT TICKET ROUTES
+// ─────────────────────────────────────────────
+app.get("/api/support/tickets", requireAuth, async (req: any, res) => {
+  try {
+    const tickets = await prisma.supportTicket.findMany({
+      where: { userId: req.user.userId },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(tickets);
+  } catch (error: any) {
+    logger.error("[SUPPORT TICKETS GET ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to fetch tickets." });
+  }
+});
+
+app.post("/api/support/tickets", requireAuth, async (req: any, res) => {
+  try {
+    const { subject, category, priority, description } = req.body;
+    if (!subject || !description) {
+      return res.status(400).json({ error: "Subject and description are required." });
+    }
+    const ticket = await prisma.supportTicket.create({
+      data: {
+        subject: subject.trim(),
+        category: category || "General",
+        priority: priority || "medium",
+        description: description.trim(),
+        userId: req.user.userId,
+        companyId: req.user.companyId,
+        messages: {
+          create: {
+            senderId: req.user.userId,
+            senderName: req.user.fullName || req.user.email,
+            senderRole: "user",
+            content: description.trim(),
+          },
+        },
+      },
+      include: { messages: true },
+    });
+    res.json(ticket);
+  } catch (error: any) {
+    logger.error("[SUPPORT TICKET CREATE ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to create ticket." });
+  }
+});
+
+app.post("/api/support/tickets/:id/messages", requireAuth, async (req: any, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) {
+      return res.status(400).json({ error: "Message content is required." });
+    }
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { id: req.params.id, userId: req.user.userId },
+    });
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found." });
+    }
+    const message = await prisma.supportMessage.create({
+      data: {
+        ticketId: ticket.id,
+        senderId: req.user.userId,
+        senderName: req.user.fullName || req.user.email,
+        senderRole: "user",
+        content: content.trim(),
+      },
+    });
+    await prisma.supportTicket.update({
+      where: { id: ticket.id },
+      data: { status: "open" },
+    });
+    res.json(message);
+  } catch (error: any) {
+    logger.error("[SUPPORT MESSAGE CREATE ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to send message." });
+  }
+});
+
+// ─────────────────────────────────────────────
+// RECEIPT VERIFICATION (public)
+// ─────────────────────────────────────────────
+app.get("/api/receipts/verify/:id", async (req, res) => {
+  try {
+    const sale = await prisma.sale.findUnique({
+      where: { id: req.params.id },
+      include: {
+        items: { include: { product: { select: { name: true, sku: true } } } },
+        company: { select: { name: true } },
+        user: { select: { fullName: true } },
+      },
+    });
+    if (!sale) {
+      return res.status(404).json({ error: "Receipt not found." });
+    }
+    res.json({
+      id: sale.id,
+      receiptNumber: sale.receiptNumber,
+      shopName: sale.company?.name?.toUpperCase() || "STORE RECEIPT",
+      customerName: "Walk-in Customer",
+      cashierName: sale.user?.fullName || "Store Clerk",
+      dateString: sale.createdAt.toLocaleString(),
+      items: sale.items.map((item: any) => ({
+        name: item.product?.name || "Retail Item",
+        qty: item.quantity,
+        price: Number(item.unitPrice),
+        total: Number(item.totalPrice),
+        id: item.product?.sku ? `ITM-${item.product.sku}` : undefined,
+      })),
+      subtotal: Number(sale.subtotal),
+      tax: Number(sale.taxAmount),
+      discount: Number(sale.discountAmount),
+      total: Number(sale.totalAmount),
+      paymentMethod: sale.paymentMethod,
+      verifiedAt: new Date().toLocaleString(),
+    });
+  } catch (error: any) {
+    logger.error("[RECEIPT VERIFY ERROR]", { error: error.message });
+    res.status(500).json({ error: "Failed to verify receipt." });
+  }
+});
+
 // Centralized, production-safe global error-handler and safety shield (No leaking internals)
 app.use((err: any, req: any, res: any, next: any) => {
   logger.error("Unhandled API Boundary Crash", {
@@ -3711,5 +3910,4 @@ async function startServer() {
 if (!process.env.VERCEL) {
   startServer();
 }
-export default app;
 export default app;

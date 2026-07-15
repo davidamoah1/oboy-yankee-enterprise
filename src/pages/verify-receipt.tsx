@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "motion/react";
+import { api } from "@/lib/api";
 
 interface VerificationItem {
   name: string;
@@ -50,9 +51,6 @@ export default function VerifyReceiptPage() {
   const [receipt, setReceipt] = useState<VerificationReceipt | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
-  
-  // Real-time verification logging simulation
-  const [verificationLogs, setVerificationLogs] = useState<string[]>([]);
 
   useEffect(() => {
     async function verifyAndLoadReceipt() {
@@ -62,122 +60,22 @@ export default function VerifyReceiptPage() {
         return;
       }
 
-      setVerificationLogs(["[CONN] Initiating handshake with OBOY YANKEE Secure Node..."]);
-      
-      setTimeout(() => {
-        setVerificationLogs(prev => [...prev, "[AUTH] Exchanging public key hash..."]);
-      }, 300);
-
-      setTimeout(() => {
-        setVerificationLogs(prev => [...prev, `[QUERY] Seeking database record signature for ID: ${receiptId}...`]);
-      }, 700);
-
       try {
-        let dbReceipt: VerificationReceipt | null = null;
-
-        // 1. Try querying Supabase if available
-        try {
-          const { supabase, isSupabaseConfigured } = await import("@/lib/supabase");
-          if (isSupabaseConfigured()) {
-            // Find transaction matching this ID or matching IDB local backup ID
-            const { data: tx, error: txError } = await supabase
-              .from("transactions")
-              .select("*")
-              .or(`id.eq.${receiptId},idb_id.eq.${receiptId}`)
-              .maybeSingle();
-
-            if (tx) {
-              setVerificationLogs(prev => [...prev, `[FOUND] Valid transaction matching UUID found in remote database ledger.`]);
-              
-              // Load transaction items
-              const { data: txItems, error: itemsError } = await supabase
-                .from("transaction_items")
-                .select("*")
-                .eq("transaction_id", tx.id);
-
-              let fetchedItems: VerificationItem[] = [];
-              if (txItems && txItems.length > 0) {
-                // Fetch product names for item lists
-                const productIds = txItems.map(it => it.product_id);
-                const { data: products } = await supabase
-                  .from("products")
-                  .select("id, name, sku")
-                  .in("id", productIds);
-
-                fetchedItems = txItems.map(it => {
-                  const matchingProd = products?.find(p => p.id === it.product_id);
-                  return {
-                    name: matchingProd ? matchingProd.name : "Retail Item",
-                    qty: it.quantity,
-                    price: Number(it.unit_price) || 0,
-                    total: Number(it.total_price) || 0,
-                    id: matchingProd ? `ITM-${matchingProd.sku || "PROD"}` : undefined
-                  };
-                });
-              } else {
-                // Fallback dummy item array inside transaction matching total
-                fetchedItems = [{
-                  name: "General Store Items",
-                  qty: 1,
-                  price: Number(tx.total_amount) || 0,
-                  total: Number(tx.total_amount) || 0,
-                  id: "GEN-01"
-                }];
-              }
-
-              // Load tenant profile name
-              let shopName = "STORE RECEIPT";
-              if (tx.tenant_id) {
-                const { data: tenant } = await supabase
-                  .from("tenants")
-                  .select("name")
-                  .eq("id", tx.tenant_id)
-                  .maybeSingle();
-                if (tenant?.name) {
-                  shopName = tenant.name.toUpperCase();
-                } else {
-                  shopName = tx.tenant_id.replace(/-/g, " ").toUpperCase();
-                }
-              }
-
-              dbReceipt = {
-                id: tx.id,
-                shopName,
-                customerName: "Walk-in Customer",
-                cashierName: "Store Clerk",
-                dateString: new Date(tx.created_at).toLocaleString(),
-                items: fetchedItems,
-                subtotal: Number(tx.subtotal) || Number(tx.total_amount),
-                tax: Number(tx.tax_amount) || 0,
-                discount: Number(tx.discount_amount) || 0,
-                total: Number(tx.total_amount) || 0,
-                paymentMethod: tx.payment_method || "Mobile Money",
-                receiptNumber: tx.receipt_number || tx.id,
-                verifiedAt: new Date().toLocaleString()
-              };
-            }
-          }
-        } catch (supabaseErr) {
-          console.warn("Verify receipt DB fetch bypass: ", supabaseErr);
-        }
-
-        // 2. Error if not found in Database
-        if (!dbReceipt) {
-          setVerificationLogs(prev => [...prev, `[NOT FOUND] Receipt not found in database.`]);
+        const { data } = await api.get(`/api/receipts/verify/${receiptId}`);
+        if (data) {
+          setReceipt(data);
+          setLoading(false);
+        } else {
           setErrorStatus("This receipt could not be found. It may be invalid or from a different business.");
           setLoading(false);
-          return;
         }
-
-        setTimeout(() => {
-          setVerificationLogs(prev => [...prev, `[VERIFIED] Receipt found and verified successfully.`]);
-          setReceipt(dbReceipt);
-          setLoading(false);
-        }, 1200);
-
       } catch (err: any) {
-        setVerificationLogs(prev => [...prev, `[ERROR] Verification engine error: ${err.message || err}`]);
-        setErrorStatus("Verification engine error: " + (err.message || err));
+        const status = err?.response?.status;
+        if (status === 404) {
+          setErrorStatus("This receipt could not be found. It may be invalid or from a different business.");
+        } else {
+          setErrorStatus("Verification engine error: " + (err.message || err));
+        }
         setLoading(false);
       }
     }
@@ -230,16 +128,6 @@ export default function VerifyReceiptPage() {
             <div className="flex items-center justify-center space-y-4 flex-col py-12">
                <Cpu className="h-8 w-8 text-primary animate-spin" />
                <p className="text-xs font-mono font-black uppercase tracking-widest text-emerald-500 animate-pulse">Verifying Receipt...</p>
-            </div>
-            
-            {/* Live Audit Log Parser for extra immersion and authenticity */}
-            <div className="border border-white/5 bg-black/60 rounded-2xl p-4 font-mono text-[10px] space-y-2 text-slate-400 h-32 overflow-hidden select-none">
-              <div className="text-primary text-[8px] font-black uppercase tracking-[0.2em] mb-2 border-b border-white/5 pb-1 select-none">Verification Logs:</div>
-              {verificationLogs.map((log, idx) => (
-                <div key={idx} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  {log}
-                </div>
-              ))}
             </div>
           </Card>
         ) : errorStatus ? (

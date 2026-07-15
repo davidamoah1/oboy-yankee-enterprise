@@ -1,5 +1,11 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 
+// Security: This file must never be imported by client-side code.
+// It accesses process.env.DATABASE_URL which must not leak to the browser.
+if (typeof window !== 'undefined') {
+  throw new Error('[SECURITY] prisma.ts is server-only and must not be imported in client code.');
+}
+
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 const basePrisma =

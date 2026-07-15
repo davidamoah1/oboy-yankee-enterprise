@@ -34,15 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const mountedRef = useRef(true);
 
   const fetchProfile = useCallback(async () => {
-    if (!tokenStorage.hasTokens()) {
-      setUser(null);
-      setCompany(null);
-      setPermissions([]);
-      setLoading(false);
-      setAuthInitialized(true);
-      return;
-    }
-
     try {
       const response = await apiClient.get('/api/auth/me');
       const userData = response.data;
@@ -108,17 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Seed from cached user instantly to prevent flash
     const cachedUser = tokenStorage.getCachedUser();
-    if (cachedUser && tokenStorage.hasTokens()) {
+    if (cachedUser) {
       setUser(cachedUser);
       setLoading(false);
       setAuthInitialized(true);
-      // Refresh in background
-      fetchProfile();
-    } else if (tokenStorage.hasTokens()) {
+      // Refresh in background via httpOnly cookie
       fetchProfile();
     } else {
-      setLoading(false);
-      setAuthInitialized(true);
+      // No cached user — try fetching profile (cookie may still be valid)
+      fetchProfile();
     }
 
     return () => {
@@ -128,10 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string): Promise<UserProfile> => {
     const response = await apiClient.post('/api/auth/login', { email, password });
-    const { accessToken, refreshToken, user: userData } = response.data;
+    const { user: userData } = response.data;
 
-    tokenStorage.setTokens(accessToken, refreshToken);
-
+    // Tokens are set as httpOnly cookies by the server
     const profile: UserProfile = {
       id: userData.id,
       email: userData.email,
@@ -180,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchProfile();
   }, [fetchProfile]);
 
-  const isAuthenticated = useMemo(() => !!user && tokenStorage.hasTokens(), [user]);
+  const isAuthenticated = useMemo(() => !!user, [user]);
 
   const activeBranch = useMemo(() => {
     if (!activeBranchId || branches.length === 0) return null;
